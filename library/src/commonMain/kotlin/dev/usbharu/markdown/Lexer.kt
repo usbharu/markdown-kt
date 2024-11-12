@@ -1,5 +1,7 @@
 package dev.usbharu.markdown
 
+import kotlin.collections.List
+
 class Lexer {
     fun lex(input: String): List<Token> {
         val tokens = mutableListOf<Token>()
@@ -14,8 +16,20 @@ class Lexer {
                 val iterator = PeekableCharIterator(line.toCharArray())
                 while (iterator.hasNext()) {
                     when (val next = iterator.next()) {
-                        '#' -> header(iterator, tokens)
-                        '>' -> quote(iterator, tokens)
+                        '#', '＃' -> header(iterator, tokens)
+                        '>', '＞' -> quote(iterator, tokens)
+                        '-', '=', 'ー', '＝' -> {
+                            if (iterator.peekOrNull()?.isWhitespace() == true) { //-の直後がスペースならリストの可能性
+                                list(iterator, tokens, next)
+                            } else {//それ以外ならセパレーターの可能性
+                                separator(next, iterator, tokens)
+                            }
+                        }
+
+                        ' ', '　' -> {
+                            tokens.add(Whitespace(skipWhitespace(iterator) + 1, next)) //nextの分1足す
+                        }
+
                         else -> {
                             tokens.add(Text(next + collect(iterator)))
                             tokens.add(Break(1))
@@ -39,6 +53,61 @@ class Lexer {
         return tokens
     }
 
+    private fun list(
+        iterator: PeekableCharIterator,
+        tokens: MutableList<Token>,
+        next: Char
+    ) {
+
+        if (iterator.peekOrNull()?.isWhitespace() == true) {
+            tokens.add(DiscList)
+        }
+
+        skipWhitespace(iterator)
+        if (iterator.peekOrNull() == '[') {
+            iterator.next()
+            val checkedChar = iterator.peekOrNull() ?: return
+            iterator.next()
+            if ((checkedChar == 'x' || checkedChar == ' ' || checkedChar == '　').not()) {
+                tokens.add(Text("[$checkedChar"))
+                return
+            }
+            val checked = checkedChar == 'x'
+            if (iterator.peekOrNull() == ']') {
+                iterator.next()
+                if (iterator.peekOrNull()?.isWhitespace() == true) {
+                    iterator.next()
+                    tokens.add(CheckBox(checked))
+                    return
+                }
+            }
+            tokens.add(Text("[$checkedChar"))
+        }
+    }
+
+    private fun separator(
+        next: Char,
+        iterator: PeekableCharIterator,
+        tokens: MutableList<Token>
+    ) {
+        val builder = StringBuilder()
+        builder.append(next)
+
+        while (iterator.peekOrNull() == next) {
+            builder.append(iterator.next())
+        }
+        if (iterator.peekOrNull() == null && builder.length >= 3) { //行末まで到達していてかつ長さが3以上か
+            tokens.add(Separator(builder.length, next)) //セパレーターとして追加
+        } else {
+            val token = tokens.lastOrNull()  //ただの文字として追加
+            if (token is Text) {
+                tokens[tokens.lastIndex] = Text(token.text + builder.toString())
+            } else {
+                tokens.add(Text(builder.toString()))
+            }
+        }
+    }
+
     private fun quote(
         iterator: PeekableCharIterator,
         tokens: MutableList<Token>
@@ -49,7 +118,7 @@ class Lexer {
             count++
         }
         tokens.add(Quote(count))
-        iterator.next() //スペースを無視
+        skipWhitespace(iterator)
         tokens.add(Text(collect(iterator)))
         tokens.add(Break(1))
     }
@@ -64,9 +133,18 @@ class Lexer {
             count++
         }
         tokens.add(Header(count))
-        iterator.next() //スペースを無視
+        skipWhitespace(iterator)
         tokens.add(Text(collect(iterator)))
         tokens.add(Break(1))
+    }
+
+    fun skipWhitespace(iterator: PeekableCharIterator): Int {
+        var count = 0
+        while (iterator.peekOrNull()?.isWhitespace() == true) {
+            iterator.next()
+            count++
+        }
+        return count
     }
 
     fun collect(iterator: PeekableCharIterator): String {

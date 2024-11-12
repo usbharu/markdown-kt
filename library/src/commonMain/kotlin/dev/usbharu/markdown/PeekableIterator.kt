@@ -1,5 +1,7 @@
 package dev.usbharu.markdown
 
+import kotlin.collections.List
+
 class PeekableCharIterator(private val charArray: CharArray) : Iterator<Char> {
     private var index = 0
     override fun hasNext(): Boolean = index < charArray.size
