@@ -20,10 +20,21 @@ class Lexer {
                         '>', '＞' -> quote(iterator, tokens)
                         '-', '=', 'ー', '＝' -> {
                             if (iterator.peekOrNull()?.isWhitespace() == true) { //-の直後がスペースならリストの可能性
-                                list(iterator, tokens, next)
+                                list(iterator, tokens)
                             } else {//それ以外ならセパレーターの可能性
                                 separator(next, iterator, tokens)
                             }
+                        }
+
+                        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '０', '１', '２', '３', '４', '５', '６', '７', '８', '９' ->
+                            decimalList(iterator, tokens, next)
+
+                        '[', '「' -> {
+                            tokens.add(SquareBracketStart)
+                        }
+
+                        ']', '」' -> {
+                            tokens.add(SquareBracketEnd)
                         }
 
                         ' ', '　' -> {
@@ -53,10 +64,30 @@ class Lexer {
         return tokens
     }
 
-    private fun list(
+    private fun decimalList(
         iterator: PeekableCharIterator,
         tokens: MutableList<Token>,
         next: Char
+    ) {
+        val comma = iterator.peekOrNull()
+        if (comma == null) {
+            tokens.add(Text(next.toString()))
+            return
+        }
+        if (comma == '.' || comma == '。' || comma == '、') {
+            iterator.next()
+            if (iterator.peekOrNull()?.isWhitespace() == true) {
+                iterator.next()
+                tokens.add(DecimalList(next))
+                return
+            }
+        }
+        tokens.add(Text(next + "" + comma))
+    }
+
+    private fun list(
+        iterator: PeekableCharIterator,
+        tokens: MutableList<Token>
     ) {
 
         if (iterator.peekOrNull()?.isWhitespace() == true) {

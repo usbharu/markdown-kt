@@ -331,4 +331,81 @@ class LexerTest {
 
         assertContentEquals(listOf(DiscList, Text("aiueo"), Break(1), DiscList, Text("abcd")), actual)
     }
+
+    @Test
+    fun ディスクリストネスト() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("- aiueo\n    - abcd")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(DiscList, Text("aiueo"), Break(1), Whitespace(4, ' '), DiscList, Text("abcd")),
+            actual
+        )
+    }
+
+    @Test
+    fun 数字リスト() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("1. aiueo\n    2. abcd")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                DecimalList('1'),
+                Text("aiueo"),
+                Break(1),
+                Whitespace(4, ' '),
+                DecimalList('2'),
+                Text("abcd")
+            ),
+            actual
+        )
+    }
+
+    @Test
+    fun 全角数字リスト() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("１. aiueo\n    ２. abcd")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                DecimalList('１'),
+                Text("aiueo"),
+                Break(1),
+                Whitespace(4, ' '),
+                DecimalList('２'),
+                Text("abcd")
+            ),
+            actual
+        )
+    }
+
+    @Test
+    fun 全角コンマリスト() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("1。 aiueo\n    2、 abcd")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                DecimalList('1'),
+                Text("aiueo"),
+                Break(1),
+                Whitespace(4, ' '),
+                DecimalList('2'),
+                Text("abcd")
+            ),
+            actual
+        )
+    }
 }

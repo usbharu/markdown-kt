@@ -16,5 +16,7 @@ abstract class List(val type: ListType) : Token() {
 }
 
 data object DiscList : List(ListType.DISC)
-data class DecimalList(val number: Int) : List(ListType.DECIMAL)
-data class CheckBox(val checked:Boolean): Token()
+data class DecimalList(val number: Char) : List(ListType.DECIMAL)
+data class CheckBox(val checked: Boolean) : Token()
+data object SquareBracketStart : Token()
+data object SquareBracketEnd : Token()
