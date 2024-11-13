@@ -6,6 +6,9 @@ class Lexer {
     fun lex(input: String): List<Token> {
         val tokens = mutableListOf<Token>()
         val lines = PeekableStringIterator(input.lines())
+
+        var inQuote = false
+
         line@ while (lines.hasNext()) {
 
             if (lines.peekOrNull() == "") {
@@ -15,10 +18,15 @@ class Lexer {
 
                 val iterator = PeekableCharIterator(line.toCharArray())
                 char@ while (iterator.hasNext()) {
-                    when (val next = iterator.next()) {
-                        '#', '＃' -> header(iterator, tokens)
-                        '>', '＞' -> quote(iterator, tokens)
-                        '-', '=', 'ー', '＝' -> {
+                    val next = iterator.next()
+                    when {
+                        next == '#' || next == '＃' -> header(iterator, tokens)
+                        (next == '>' || next == '＞') && !inQuote -> {
+                            inQuote = true
+                            quote(iterator, tokens)
+                        }
+
+                        next == '-' || next == '=' || next == 'ー' || next == '＝' -> {
                             if (iterator.peekOrNull()?.isWhitespace() == true) { //-の直後がスペースならリストの可能性
                                 list(iterator, tokens)
                             } else {//それ以外ならセパレーターの可能性
@@ -26,55 +34,34 @@ class Lexer {
                             }
                         }
 
-                        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '０', '１', '２', '３', '４', '５', '６', '７', '８', '９' ->
+                        next in '0'..'9' || next in '０'..'９' ->
                             decimalList(iterator, tokens, next)
 
-                        '[', '「' -> {
-                            tokens.add(SquareBracketStart)
-                        }
+                        next == '[' || next == '「' -> tokens.add(SquareBracketStart)
 
-                        ']', '」' -> {
-                            tokens.add(SquareBracketEnd)
-                        }
+                        next == ']' || next == '」' -> tokens.add(SquareBracketEnd)
 
-                        '（', '(' -> {
-                            tokens.add(ParenthesesStart)
-                        }
+                        next == '（' || next == '(' -> tokens.add(ParenthesesStart)
 
-                        ')', '）' -> {
-                            tokens.add(ParenthesesEnd)
-                        }
+                        next == ')' || next == '）' -> tokens.add(ParenthesesEnd)
 
-                        ' ', '　' -> {
-                            tokens.add(Whitespace(skipWhitespace(iterator) + 1, next)) //nextの分1足す
-                        }
+                        next.isWhitespace() -> tokens.add(
+                            Whitespace(
+                                skipWhitespace(iterator) + 1,
+                                next
+                            )
+                        ) //nextの分1足す
 
-                        'h' -> {
-                            //todo httpにも対応
-                            val charIterator = "ttps://".iterator()
-                            val urlBuilder = StringBuilder()
-                            urlBuilder.append(next)
-                            while (charIterator.hasNext() && iterator.hasNext()) {
-                                val nextC = charIterator.next()
-                                val nextC2 = iterator.next()
-                                urlBuilder.append(nextC2)
-                                if (nextC != nextC2) {
-                                    tokens.add(Text(urlBuilder.toString()))
-                                    continue@char
-                                }
+                        next == 'h' -> url(next, iterator, tokens)
+
+                        next == '*' -> {
+                            var count = 1
+                            while (iterator.peekOrNull() == '*') {
+                                count++
+                                iterator.next()
                             }
-                            if (urlBuilder.length == 1) {
-                                tokens.add(Text(urlBuilder.toString())) //hだけのときはURLじゃないのでテキストとして追加
-                            } else {
-                                while (iterator.hasNext() && iterator.peekOrNull()?.isWhitespace() != true) {
-                                    urlBuilder.append(iterator.next())
-                                }
-                                tokens.add(Url(urlBuilder.toString()))
-                            }
-
-
+                            tokens.add(Asterisk(count))
                         }
-
 
                         else -> {
                             val lastToken = tokens.lastOrNull()
@@ -89,7 +76,7 @@ class Lexer {
 
                 tokens.add(Break(1))
             }
-
+            inQuote = false
         }
 
         println(tokens)
@@ -104,10 +91,38 @@ class Lexer {
         return tokens
     }
 
+    private fun url(
+        next: Char,
+        iterator: PeekableCharIterator,
+        tokens: MutableList<Token>,
+    ) {
+        //todo httpにも対応
+        val charIterator = "ttps://".iterator()
+        val urlBuilder = StringBuilder()
+        urlBuilder.append(next)
+        while (charIterator.hasNext() && iterator.hasNext()) {
+            val nextC = charIterator.next()
+            val nextC2 = iterator.next()
+            urlBuilder.append(nextC2)
+            if (nextC != nextC2) {
+                tokens.add(Text(urlBuilder.toString()))
+                return
+            }
+        }
+        if (urlBuilder.length == 1) {
+            tokens.add(Text(urlBuilder.toString())) //hだけのときはURLじゃないのでテキストとして追加
+        } else {
+            while (iterator.hasNext() && iterator.peekOrNull()?.isWhitespace() != true) {
+                urlBuilder.append(iterator.next())
+            }
+            tokens.add(Url(urlBuilder.toString()))
+        }
+    }
+
     private fun decimalList(
         iterator: PeekableCharIterator,
         tokens: MutableList<Token>,
-        next: Char
+        next: Char,
     ) {
         val comma = iterator.peekOrNull()
         if (comma == null) {
@@ -127,7 +142,7 @@ class Lexer {
 
     private fun list(
         iterator: PeekableCharIterator,
-        tokens: MutableList<Token>
+        tokens: MutableList<Token>,
     ) {
 
         if (iterator.peekOrNull()?.isWhitespace() == true) {
@@ -159,7 +174,7 @@ class Lexer {
     private fun separator(
         next: Char,
         iterator: PeekableCharIterator,
-        tokens: MutableList<Token>
+        tokens: MutableList<Token>,
     ) {
         val builder = StringBuilder()
         builder.append(next)
@@ -181,7 +196,7 @@ class Lexer {
 
     private fun quote(
         iterator: PeekableCharIterator,
-        tokens: MutableList<Token>
+        tokens: MutableList<Token>,
     ) {
         var count = 1
         while (iterator.peekOrNull()?.isWhitespace() == false) {
@@ -190,12 +205,11 @@ class Lexer {
         }
         tokens.add(Quote(count))
         skipWhitespace(iterator)
-        tokens.add(Text(collect(iterator)))
     }
 
     private fun header(
         iterator: PeekableCharIterator,
-        tokens: MutableList<Token>
+        tokens: MutableList<Token>,
     ) {
         var count = 1
         while (iterator.peekOrNull()?.isWhitespace() == false) {
@@ -229,7 +243,7 @@ class Lexer {
      */
     private fun blankLine(
         lines: PeekableStringIterator,
-        tokens: MutableList<Token>
+        tokens: MutableList<Token>,
     ) {
         var count = 0
         while (lines.peekOrNull() == "") {

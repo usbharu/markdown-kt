@@ -483,4 +483,39 @@ class LexerTest {
             ), actual
         )
     }
+
+    @Test
+    fun アスタリスク() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("*a*")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Asterisk(1),
+                Text("a"),
+                Asterisk(1)
+            ), actual
+        )
+    }
+
+    @Test
+    fun アスタリスク2() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("> *a*")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Quote(1),
+                Asterisk(1),
+                Text("a"),
+                Asterisk(1)
+            ), actual
+        )
+    }
 }
