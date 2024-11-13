@@ -563,6 +563,48 @@ class LexerTest {
 
         assertContentEquals(
             listOf(
+                Text("h"), Asterisk(1, '*'), Text("a"), Asterisk(1, '*')
+            ), actual
+        )
+    }
+
+    @Test
+    fun 画像() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("![alt](https://example.com)")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Exclamation,
+                SquareBracketStart,
+                Text("alt"),
+                SquareBracketEnd,
+                ParenthesesStart,
+                Url("https://example.com"),
+                ParenthesesEnd
+            ), actual
+        )
+    }
+
+    @Test
+    fun url3() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("[alt](https://example.com)")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                SquareBracketStart,
+                Text("alt"),
+                SquareBracketEnd,
+                ParenthesesStart,
+                Url("https://example.com"),
+                ParenthesesEnd
             ), actual
         )
     }

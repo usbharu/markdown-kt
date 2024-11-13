@@ -50,6 +50,14 @@ class Lexer {
                         next == 'h' -> url(next, iterator, tokens)
                         next == '*' || next == '_' -> asterisk(iterator, next, tokens)
 
+                        next == '!' -> {
+                            if (iterator.peekOrNull() == '[') {
+                                tokens.add(Exclamation)
+                            } else {
+                                tokens.add(Text("!"))
+                            }
+                        }
+
                         else -> {
                             val lastToken = tokens.lastOrNull()
                             if (lastToken is Text) {
@@ -97,27 +105,42 @@ class Lexer {
         tokens: MutableList<Token>,
     ) {
         //todo httpにも対応
-        //todo nextでみずにpeekでみて確認してからnextする hのあとにアスタリスク等が来たときに対応できない
-        val charIterator = "ttps://".iterator()
+        val charIterator = PeekableCharIterator("ttps://".toCharArray())
         val urlBuilder = StringBuilder()
         urlBuilder.append(next)
         while (charIterator.hasNext() && iterator.hasNext()) {
-//            charIterator
-            val nextC = charIterator.next()
-            val nextC2 = iterator.next()
-            urlBuilder.append(nextC2)
+            val nextC = charIterator.peekOrNull() ?: return
+            val nextC2 = iterator.peekOrNull() ?: return
             if (nextC != nextC2) {
                 tokens.add(Text(urlBuilder.toString()))
                 return
             }
+            urlBuilder.append(nextC2)
+            charIterator.next()
+            iterator.next()
         }
         if (urlBuilder.length == 1) {
             tokens.add(Text(urlBuilder.toString())) //hだけのときはURLじゃないのでテキストとして追加
         } else {
-            while (iterator.hasNext() && iterator.peekOrNull()?.isWhitespace() != true) {
+            while (iterator.hasNext() && (iterator.peekOrNull()
+                    ?.isWhitespace() != true && iterator.peekOrNull() != ')')
+            ) {
                 urlBuilder.append(iterator.next())
             }
             tokens.add(Url(urlBuilder.toString()))
+            skipWhitespace(iterator)
+            val doubleQuotation = iterator.peekOrNull()
+            if (iterator.peekOrNull() == '"' || doubleQuotation == '”') {
+                iterator.next()
+                doubleQuotation!!
+                val titleBuilder = StringBuilder()
+                while (iterator.hasNext() && iterator.peekOrNull() != doubleQuotation && iterator.peekOrNull() != ')') {
+                    titleBuilder.append(iterator.next())
+                }
+                if (iterator.peekOrNull() == '"') {
+                    iterator.next()
+                }
+            }
         }
     }
 
