@@ -6,7 +6,7 @@ class Lexer {
     fun lex(input: String): List<Token> {
         val tokens = mutableListOf<Token>()
         val lines = PeekableStringIterator(input.lines())
-        while (lines.hasNext()) {
+        line@ while (lines.hasNext()) {
 
             if (lines.peekOrNull() == "") {
                 blankLine(lines, tokens)
@@ -14,7 +14,7 @@ class Lexer {
                 val line = lines.next()
 
                 val iterator = PeekableCharIterator(line.toCharArray())
-                while (iterator.hasNext()) {
+                char@ while (iterator.hasNext()) {
                     when (val next = iterator.next()) {
                         '#', '＃' -> header(iterator, tokens)
                         '>', '＞' -> quote(iterator, tokens)
@@ -37,22 +37,62 @@ class Lexer {
                             tokens.add(SquareBracketEnd)
                         }
 
+                        '（', '(' -> {
+                            tokens.add(ParenthesesStart)
+                        }
+
+                        ')', '）' -> {
+                            tokens.add(ParenthesesEnd)
+                        }
+
                         ' ', '　' -> {
                             tokens.add(Whitespace(skipWhitespace(iterator) + 1, next)) //nextの分1足す
                         }
 
+                        'h' -> {
+                            //todo httpにも対応
+                            val charIterator = "ttps://".iterator()
+                            val urlBuilder = StringBuilder()
+                            urlBuilder.append(next)
+                            while (charIterator.hasNext() && iterator.hasNext()) {
+                                val nextC = charIterator.next()
+                                val nextC2 = iterator.next()
+                                urlBuilder.append(nextC2)
+                                if (nextC != nextC2) {
+                                    tokens.add(Text(urlBuilder.toString()))
+                                    continue@char
+                                }
+                            }
+                            if (urlBuilder.length == 1) {
+                                tokens.add(Text(urlBuilder.toString())) //hだけのときはURLじゃないのでテキストとして追加
+                            } else {
+                                while (iterator.hasNext() && iterator.peekOrNull()?.isWhitespace() != true) {
+                                    urlBuilder.append(iterator.next())
+                                }
+                                tokens.add(Url(urlBuilder.toString()))
+                            }
+
+
+                        }
+
+
                         else -> {
-                            tokens.add(Text(next + collect(iterator)))
-                            tokens.add(Break(1))
+                            val lastToken = tokens.lastOrNull()
+                            if (lastToken is Text) {
+                                lastToken.text += next.toString()
+                            } else {
+                                tokens.add(Text(next.toString()))
+                            }
                         }
                     }
                 }
 
-
+                tokens.add(Break(1))
             }
 
         }
 
+        println(tokens)
         val lastToken = tokens.lastOrNull()
         if (lastToken is Break) {
             if (lastToken.count == 1) {
@@ -151,7 +191,6 @@ class Lexer {
         tokens.add(Quote(count))
         skipWhitespace(iterator)
         tokens.add(Text(collect(iterator)))
-        tokens.add(Break(1))
     }
 
     private fun header(
@@ -166,7 +205,6 @@ class Lexer {
         tokens.add(Header(count))
         skipWhitespace(iterator)
         tokens.add(Text(collect(iterator)))
-        tokens.add(Break(1))
     }
 
     fun skipWhitespace(iterator: PeekableCharIterator): Int {

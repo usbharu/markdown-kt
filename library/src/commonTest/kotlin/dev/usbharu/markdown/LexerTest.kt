@@ -57,7 +57,7 @@ class LexerTest {
 
         println(actual)
 
-        assertContentEquals(listOf(Text("abcd"), Break(1), Text("efgh")), actual)
+        assertContentEquals(listOf(Text("abcd"), Break(1), Text("efg"), Text("h")), actual)
     }
 
     @Test
@@ -68,7 +68,7 @@ class LexerTest {
 
         println(actual)
 
-        assertContentEquals(listOf(Text("abcd"), Break(2), Text("efgh")), actual)
+        assertContentEquals(listOf(Text("abcd"), Break(2), Text("efg"), Text("h")), actual)
     }
 
     @Test
@@ -223,7 +223,7 @@ class LexerTest {
 
         println(actual)
 
-        assertContentEquals(listOf(Text("---"), Text("aiueo")), actual)
+        assertContentEquals(listOf(Text("---aiueo")), actual)
     }
 
     @Test
@@ -256,7 +256,7 @@ class LexerTest {
 
         println(actual)
 
-        assertContentEquals(listOf(DiscList, Text("[x"), Text("a a")), actual)
+        assertContentEquals(listOf(DiscList, Text("[xa"), Whitespace(1, ' '), Text("a")), actual)
     }
 
     @Test
@@ -278,7 +278,7 @@ class LexerTest {
 
         println(actual)
 
-        assertContentEquals(listOf(Text("-"), Text("aiueo")), actual)
+        assertContentEquals(listOf(Text("-aiueo")), actual)
     }
 
     @Test
@@ -406,6 +406,81 @@ class LexerTest {
                 Text("abcd")
             ),
             actual
+        )
+    }
+
+    @Test
+    fun url() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("https://example.com")
+
+        println(actual)
+
+        assertContentEquals(listOf(Url("https://example.com")), actual)
+    }
+
+    @Test
+    fun url2() {
+        val lexer = Lexer()
+
+        val actual =
+            lexer.lex("https://ja.wikipedia.org/wiki/%E3%83%A4%E3%83%B3%E3%83%90%E3%83%AB%E3%82%AF%E3%82%A4%E3%83%8A#%E6%8E%A1%E9%A4%8C")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(Url("https://ja.wikipedia.org/wiki/%E3%83%A4%E3%83%B3%E3%83%90%E3%83%AB%E3%82%AF%E3%82%A4%E3%83%8A#%E6%8E%A1%E9%A4%8C")),
+            actual
+        )
+    }
+
+    @Test
+    fun 文中にurl() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("こんにちは～ https://example.com\nあいうえお")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Text("こんにちは～"),
+                Whitespace(1, ' '),
+                Url("https://example.com"),
+                Break(1),
+                Text("あいうえお")
+            ), actual
+        )
+    }
+
+    @Test
+    fun urlかと思ったら違った() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("httppppp")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Text("httppppp")
+            ), actual
+        )
+    }
+
+    @Test
+    fun urlかと思ったら違った2() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("ha")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Text("ha")
+            ), actual
         )
     }
 }
