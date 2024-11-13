@@ -38,30 +38,17 @@ class Lexer {
                             decimalList(iterator, tokens, next)
 
                         next == '[' || next == '「' -> tokens.add(SquareBracketStart)
-
                         next == ']' || next == '」' -> tokens.add(SquareBracketEnd)
-
                         next == '（' || next == '(' -> tokens.add(ParenthesesStart)
-
                         next == ')' || next == '）' -> tokens.add(ParenthesesEnd)
-
                         next.isWhitespace() -> tokens.add(
                             Whitespace(
                                 skipWhitespace(iterator) + 1,
                                 next
                             )
                         ) //nextの分1足す
-
                         next == 'h' -> url(next, iterator, tokens)
-
-                        next == '*' -> {
-                            var count = 1
-                            while (iterator.peekOrNull() == '*') {
-                                count++
-                                iterator.next()
-                            }
-                            tokens.add(Asterisk(count))
-                        }
+                        next == '*' || next == '_' -> asterisk(iterator, next, tokens)
 
                         else -> {
                             val lastToken = tokens.lastOrNull()
@@ -91,16 +78,31 @@ class Lexer {
         return tokens
     }
 
+    private fun asterisk(
+        iterator: PeekableCharIterator,
+        next: Char,
+        tokens: MutableList<Token>,
+    ) {
+        var count = 1
+        while (iterator.peekOrNull() == next) {
+            count++
+            iterator.next()
+        }
+        tokens.add(Asterisk(count, next))
+    }
+
     private fun url(
         next: Char,
         iterator: PeekableCharIterator,
         tokens: MutableList<Token>,
     ) {
         //todo httpにも対応
+        //todo nextでみずにpeekでみて確認してからnextする hのあとにアスタリスク等が来たときに対応できない
         val charIterator = "ttps://".iterator()
         val urlBuilder = StringBuilder()
         urlBuilder.append(next)
         while (charIterator.hasNext() && iterator.hasNext()) {
+//            charIterator
             val nextC = charIterator.next()
             val nextC2 = iterator.next()
             urlBuilder.append(nextC2)

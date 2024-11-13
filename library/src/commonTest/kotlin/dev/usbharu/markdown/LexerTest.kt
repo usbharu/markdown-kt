@@ -494,9 +494,9 @@ class LexerTest {
 
         assertContentEquals(
             listOf(
-                Asterisk(1),
+                Asterisk(1, '*'),
                 Text("a"),
-                Asterisk(1)
+                Asterisk(1, '*')
             ), actual
         )
     }
@@ -512,9 +512,57 @@ class LexerTest {
         assertContentEquals(
             listOf(
                 Quote(1),
-                Asterisk(1),
+                Asterisk(1, '*'),
                 Text("a"),
-                Asterisk(1)
+                Asterisk(1, '*')
+            ), actual
+        )
+    }
+
+    @Test
+    fun アスタリスク複数() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("**a**")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Asterisk(2, '*'),
+                Text("a"),
+                Asterisk(2, '*')
+            ), actual
+        )
+    }
+
+    @Test
+    fun アンダーバー() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("__a__")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Asterisk(2, '_'),
+                Text("a"),
+                Asterisk(2, '_')
+            ), actual
+        )
+    }
+
+    @Test
+    fun urlかと思ったらアスタリスク() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("h*a*")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
             ), actual
         )
     }
