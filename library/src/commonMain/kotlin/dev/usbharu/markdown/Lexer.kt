@@ -68,24 +68,9 @@ class Lexer {
                             }
                         }
 
-                        next == '~' || next == '～' -> {
-                            if (iterator.peekOrNull() == next) {
-                                iterator.next()
-                                val peekString = peekString(iterator, next, next)
-                                if (peekString == null) {
-                                    addText(tokens, "$next$next")
-                                } else {
-                                    tokens.add(Strike(peekString))
-                                    iterator.skip(peekString.length + 2)
-                                }
-                            } else {
-                                addText(tokens, next.toString())
-                            }
-                        }
+                        next == '~' || next == '～' -> strike(iterator, next, tokens)
 
-                        else -> {
-                            addText(tokens, next.toString())
-                        }
+                        else -> addText(tokens, next.toString())
                     }
                     if (!inline && tokens.lastOrNull() !is Whitespace) { //行頭が空白の場合は一旦無視する
                         inline = true
@@ -111,6 +96,25 @@ class Lexer {
             }
         }
         return tokens
+    }
+
+    private fun strike(
+        iterator: PeekableCharIterator,
+        next: Char,
+        tokens: MutableList<Token>,
+    ) {
+        if (iterator.peekOrNull() == next) {
+            iterator.next()
+            val peekString = peekString(iterator, next, next)
+            if (peekString == null) {
+                addText(tokens, "$next$next")
+            } else {
+                tokens.add(Strike(peekString))
+                iterator.skip(peekString.length + 2)
+            }
+        } else {
+            addText(tokens, next.toString())
+        }
     }
 
     private fun addText(tokens: MutableList<Token>, next: String) {
@@ -254,7 +258,7 @@ class Lexer {
     ) {
         val comma = iterator.peekOrNull()
         if (comma == null) {
-            tokens.add(Text(next.toString()))
+            addText(tokens, next.toString())
             return
         }
         if (comma == '.' || comma == '。' || comma == '、') {
@@ -265,7 +269,7 @@ class Lexer {
                 return
             }
         }
-        tokens.add(Text(next + "" + comma))
+        addText(tokens, next + "" + comma)
     }
 
     private fun list(
@@ -283,7 +287,7 @@ class Lexer {
             val checkedChar = iterator.peekOrNull() ?: return
             iterator.next()
             if ((checkedChar == 'x' || checkedChar == ' ' || checkedChar == '　').not()) {
-                tokens.add(Text("[$checkedChar"))
+                addText(tokens, "[$checkedChar")
                 return
             }
             val checked = checkedChar == 'x'
@@ -295,7 +299,7 @@ class Lexer {
                     return
                 }
             }
-            tokens.add(Text("[$checkedChar"))
+            addText(tokens, "[$checkedChar")
         }
     }
 
@@ -313,12 +317,7 @@ class Lexer {
         if (iterator.peekOrNull() == null && builder.length >= 3) { //行末まで到達していてかつ長さが3以上か
             tokens.add(Separator(builder.length, next)) //セパレーターとして追加
         } else {
-            val token = tokens.lastOrNull()  //ただの文字として追加
-            if (token is Text) {
-                tokens[tokens.lastIndex] = Text(token.text + builder.toString())
-            } else {
-                tokens.add(Text(builder.toString()))
-            }
+            addText(tokens, builder.toString())
         }
     }
 

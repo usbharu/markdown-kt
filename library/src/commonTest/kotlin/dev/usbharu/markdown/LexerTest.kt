@@ -885,4 +885,19 @@ class LexerTest {
             ), actual
         )
     }
+
+    @Test
+    fun 打ち消し線かと思ったら違った2() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("aiueo~abcd")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Text("aiueo~abcd")
+            ), actual
+        )
+    }
 }
