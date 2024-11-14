@@ -10,6 +10,7 @@ class Lexer {
         var inQuote = false //引用中の判断
         var inCode = false //コードブロック内の判断
         var inline = false //行頭の判断
+        var htmlNest = 0
         val codeBuffer = StringBuilder()
 
         line@ while (lines.hasNext()) {
@@ -26,9 +27,11 @@ class Lexer {
                             inCode = codeblock(iterator, next, tokens, inCode, codeBuffer, inline)
                         }
 
-                        inCode -> {
-                            codeBuffer.append(next)
-                        }
+                        inCode -> codeBuffer.append(next)
+
+                        next == '<' -> htmlNest = html(iterator, htmlNest, codeBuffer, tokens, next)
+
+                        htmlNest != 0 -> codeBuffer.append(next)
 
                         (next == '#' || next == '＃') && !inline -> header(iterator, tokens)
                         (next == '>' || next == '＞') && !inQuote && !inline -> {
@@ -80,6 +83,8 @@ class Lexer {
 
                 if (inCode) {
                     codeBuffer.append("\n")
+                } else if (htmlNest != 0) {
+                    codeBuffer.append(" ")
                 } else {
                     tokens.add(Break(1))
                 }
@@ -96,6 +101,95 @@ class Lexer {
             }
         }
         return tokens
+    }
+
+    private fun html(
+        iterator: PeekableCharIterator,
+        htmlNest: Int,
+        codeBuffer: StringBuilder,
+        tokens: MutableList<Token>,
+        next: Char
+    ): Int {
+        var htmlNest1 = htmlNest
+        var endTag = false
+        var counter = 0
+        if (iterator.peekOrNull() == '/') {
+            endTag = true
+            counter++
+        }
+        val tagNameBuilder = StringBuilder()
+        counter = skipPeekWhitespace(iterator, counter)
+
+        while (iterator.peekOrNull(counter) != null &&
+            iterator.peekOrNull(counter)?.isWhitespace() != true &&
+            iterator.peekOrNull(counter) != '>' &&
+            iterator.peekOrNull(counter) != '/'
+        ) {
+            tagNameBuilder.append(iterator.peekOrNull(counter))
+            counter++
+        }
+
+        counter = skipPeekWhitespace(iterator, counter)
+        val attributeList = mutableListOf<Token>()
+        intag@ while (iterator.peekOrNull(counter) != null &&
+            (iterator.peekOrNull(counter) != '/' && iterator.peekOrNull(counter) != '>')
+        ) {
+            val attrBuilder = StringBuilder()
+            attr@ while (iterator.peekOrNull(counter) != null && (iterator.peekOrNull(counter) != '=' && iterator.peekOrNull(
+                    counter
+                )?.isWhitespace() != true)
+            ) {
+                attrBuilder.append(iterator.peekOrNull(counter))
+                counter++
+            }
+            attributeList.add(AttributeName(attrBuilder.toString()))
+            counter = skipPeekWhitespace(iterator, counter)
+            if (iterator.peekOrNull(counter) == '=') {
+                counter++
+                if (iterator.peekOrNull(counter) == '"') {
+                    counter++
+                    //todo エスケープシーケンス
+                    val peekString = offsetPeekString(iterator, counter, '"')
+                    counter = peekString?.second?.minus(1) ?: counter
+                    if (peekString != null) {
+                        attributeList.add(AttributeValue(peekString.first))
+                    } else {
+                        break@intag
+                    }
+                }
+            }
+            counter++
+            counter = skipPeekWhitespace(iterator, counter)
+        }
+
+        val void = if (iterator.peekOrNull(counter) == '/') {//閉じタグ省略
+            counter = skipPeekWhitespace(iterator, counter)
+            val peekString = offsetPeekString(iterator, counter, '>')
+            counter = peekString?.second?.minus(1) ?: counter
+            htmlNest1-- //あとで1増えるので相殺するためにあらかじめ1減らしておく
+            true
+        } else {
+            false
+        }
+        if (iterator.peekOrNull(counter) == '>') { //タグか判定
+            if (codeBuffer.isNotBlank()) { //タグ間に文字があれば追加する
+                tokens.add(HtmlValue(codeBuffer.toString().trim()))
+                codeBuffer.clear()
+            }
+            if (endTag) {//閉じタグ判定
+                htmlNest1-- //閉じタグならネストを一つ減らす
+                tokens.add(EndTagStart(tagNameBuilder.toString()))
+            } else {
+                htmlNest1++
+                tokens.add(StartTagStart(tagNameBuilder.toString(), void))
+            }
+            tokens.addAll(attributeList)
+            tokens.add(TagEnd(tagNameBuilder.toString()))
+            iterator.skip(counter + 1)
+        } else {
+            addText(tokens, next.toString())
+        }
+        return htmlNest1
     }
 
     private fun strike(
@@ -355,6 +449,34 @@ class Lexer {
             count++
         }
         return count
+    }
+
+    fun skipPeekWhitespace(iterator: PeekableCharIterator, currentOffset: Int = 0): Int {
+        var offset = currentOffset
+        while (iterator.peekOrNull(offset)?.isWhitespace() == true) {
+            offset++
+        }
+        return offset
+    }
+
+    fun offsetPeekString(iterator: PeekableCharIterator, offset: Int = 0, vararg chars: Char): Pair<String, Int>? {
+        var counter = offset
+        val stringBuilder = StringBuilder()
+        var checkCounter = 0
+        while (iterator.peekOrNull(counter) != null && checkCounter < chars.size) {
+            stringBuilder.append(iterator.peekOrNull(counter))
+            if (iterator.peekOrNull(counter) == chars[checkCounter]) {
+                checkCounter++
+            } else {
+                checkCounter = 0
+            }
+            counter++
+        }
+        if (iterator.peekOrNull(counter) == null && checkCounter != chars.size) {
+            return null
+        }
+        val string = stringBuilder.toString()
+        return string.substring(0, string.length - chars.size) to counter
     }
 
     fun peekString(iterator: PeekableCharIterator, vararg char: Char): String? {

@@ -342,8 +342,7 @@ class LexerTest {
         println(actual)
 
         assertContentEquals(
-            listOf(DiscList, Text("aiueo"), Break(1), Whitespace(4, ' '), DiscList, Text("abcd")),
-            actual
+            listOf(DiscList, Text("aiueo"), Break(1), Whitespace(4, ' '), DiscList, Text("abcd")), actual
         )
     }
 
@@ -357,14 +356,8 @@ class LexerTest {
 
         assertContentEquals(
             listOf(
-                DecimalList('1'),
-                Text("aiueo"),
-                Break(1),
-                Whitespace(4, ' '),
-                DecimalList('2'),
-                Text("abcd")
-            ),
-            actual
+                DecimalList('1'), Text("aiueo"), Break(1), Whitespace(4, ' '), DecimalList('2'), Text("abcd")
+            ), actual
         )
     }
 
@@ -378,14 +371,8 @@ class LexerTest {
 
         assertContentEquals(
             listOf(
-                DecimalList('１'),
-                Text("aiueo"),
-                Break(1),
-                Whitespace(4, ' '),
-                DecimalList('２'),
-                Text("abcd")
-            ),
-            actual
+                DecimalList('１'), Text("aiueo"), Break(1), Whitespace(4, ' '), DecimalList('２'), Text("abcd")
+            ), actual
         )
     }
 
@@ -399,14 +386,8 @@ class LexerTest {
 
         assertContentEquals(
             listOf(
-                DecimalList('1'),
-                Text("aiueo"),
-                Break(1),
-                Whitespace(4, ' '),
-                DecimalList('2'),
-                Text("abcd")
-            ),
-            actual
+                DecimalList('1'), Text("aiueo"), Break(1), Whitespace(4, ' '), DecimalList('2'), Text("abcd")
+            ), actual
         )
     }
 
@@ -446,11 +427,7 @@ class LexerTest {
 
         assertContentEquals(
             listOf(
-                Text("こんにちは～"),
-                Whitespace(1, ' '),
-                Url("https://example.com"),
-                Break(1),
-                Text("あいうえお")
+                Text("こんにちは～"), Whitespace(1, ' '), Url("https://example.com"), Break(1), Text("あいうえお")
             ), actual
         )
     }
@@ -495,9 +472,7 @@ class LexerTest {
 
         assertContentEquals(
             listOf(
-                Asterisk(1, '*'),
-                Text("a"),
-                Asterisk(1, '*')
+                Asterisk(1, '*'), Text("a"), Asterisk(1, '*')
             ), actual
         )
     }
@@ -512,10 +487,7 @@ class LexerTest {
 
         assertContentEquals(
             listOf(
-                Quote(1),
-                Asterisk(1, '*'),
-                Text("a"),
-                Asterisk(1, '*')
+                Quote(1), Asterisk(1, '*'), Text("a"), Asterisk(1, '*')
             ), actual
         )
     }
@@ -530,9 +502,7 @@ class LexerTest {
 
         assertContentEquals(
             listOf(
-                Asterisk(2, '*'),
-                Text("a"),
-                Asterisk(2, '*')
+                Asterisk(2, '*'), Text("a"), Asterisk(2, '*')
             ), actual
         )
     }
@@ -547,9 +517,7 @@ class LexerTest {
 
         assertContentEquals(
             listOf(
-                Asterisk(2, '_'),
-                Text("a"),
-                Asterisk(2, '_')
+                Asterisk(2, '_'), Text("a"), Asterisk(2, '_')
             ), actual
         )
     }
@@ -817,12 +785,7 @@ class LexerTest {
 
         assertContentEquals(
             listOf(
-                Text("aiueo"),
-                Whitespace(1, ' '),
-                Text("```abcd"),
-                Asterisk(1, '*'),
-                Text("a"),
-                Asterisk(1, '*')
+                Text("aiueo"), Whitespace(1, ' '), Text("```abcd"), Asterisk(1, '*'), Text("a"), Asterisk(1, '*')
             ), actual
         )
     }
@@ -863,10 +826,7 @@ class LexerTest {
 
         assertContentEquals(
             listOf(
-                Text("aiueo"),
-                Whitespace(1, ' '),
-                Strike("aiueo"),
-                Text("bcde")
+                Text("aiueo"), Whitespace(1, ' '), Strike("aiueo"), Text("bcde")
             ), actual
         )
     }
@@ -897,6 +857,267 @@ class LexerTest {
         assertContentEquals(
             listOf(
                 Text("aiueo~abcd")
+            ), actual
+        )
+    }
+
+    @Test
+    fun html() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName attr=\"value\">")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("tagName", false), AttributeName("attr"), AttributeValue("value"), TagEnd("tagName")
+            ), actual
+        )
+    }
+
+    @Test
+    fun html2() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName>")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("tagName", false), TagEnd("tagName")
+            ), actual
+        )
+    }
+
+    @Test
+    fun html閉じタグ() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName attr=\"value\"></tagName>")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("tagName", false),
+                AttributeName("attr"),
+                AttributeValue("value"),
+                TagEnd("tagName"),
+                EndTagStart("tagName"),
+                TagEnd("tagName")
+            ), actual
+        )
+    }
+
+    @Test
+    fun html内容() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName attr=\"value\">hello</tagName>")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("tagName", false),
+                AttributeName("attr"),
+                AttributeValue("value"),
+                TagEnd("tagName"),
+                HtmlValue("hello"),
+                EndTagStart("tagName"),
+                TagEnd("tagName")
+            ), actual
+        )
+    }
+
+    @Test
+    fun htmlネスト() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName attr=\"value\"><tagB>hello</tagB></tagName>")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("tagName", false),
+                AttributeName("attr"),
+                AttributeValue("value"),
+                TagEnd("tagName"),
+                StartTagStart("tagB", false),
+                TagEnd("tagB"),
+                HtmlValue("hello"),
+                EndTagStart("tagB"),
+                TagEnd("tagB"),
+                EndTagStart("tagName"),
+                TagEnd("tagName")
+            ), actual
+        )
+    }
+
+    @Test
+    fun htmlかと思ったら違った() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName attr=\"value\"")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Text("<tagName"), Whitespace(1, ' '), Text("attr=\"value\"")
+            ), actual
+        )
+    }
+
+    @Test
+    fun htmlのアトリビュートかと思ったら違った() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName attr=\"value>")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Text("<tagName"), Whitespace(1, ' '), Text("attr=\"value>")
+            ), actual
+        )
+    }
+
+    @Test
+    fun html複数行() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName attr=\"value\">\nvalue\n</tagName>")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("tagName", false),
+                AttributeName("attr"),
+                AttributeValue("value"),
+                TagEnd("tagName"),
+                HtmlValue("value"),
+                EndTagStart("tagName"),
+                TagEnd("tagName")
+            ), actual
+        )
+    }
+
+    @Test
+    fun html改行() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName attr=\"value\">\nvalue\nfaaaa</tagName>")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("tagName", false),
+                AttributeName("attr"),
+                AttributeValue("value"),
+                TagEnd("tagName"),
+                HtmlValue("value faaaa"),
+                EndTagStart("tagName"),
+                TagEnd("tagName")
+            ), actual
+        )
+    }
+
+    @Test
+    fun htmlアトリビュートいっぱい() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName attr=\"value\" attr2=\"aaaaaaa\">")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("tagName", false),
+                AttributeName("attr"),
+                AttributeValue("value"),
+                AttributeName("attr2"),
+                AttributeValue("aaaaaaa"),
+                TagEnd("tagName")
+            ), actual
+        )
+    }
+
+    @Test
+    fun `html騙し続ける`() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<<<<<<")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Text("<<<<<<")
+            ), actual
+        )
+    }
+
+    @Test
+    fun html閉じタグ省略() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName/>")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("tagName", true),
+                TagEnd("tagName"),
+
+                ), actual
+        )
+    }
+
+    @Test
+    fun html閉じタグ省略ネスト() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<b><a/></b>")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("b", false),
+                TagEnd("b"),
+                StartTagStart("a", true),
+                TagEnd("a"),
+                EndTagStart("b"),
+                TagEnd("b"),
+            ), actual
+        )
+    }
+
+    @Test
+    fun html閉じタグ省略ネストと内容() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<b><a/>aaaa</b>")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("b", false),
+                TagEnd("b"),
+                StartTagStart("a", true),
+                TagEnd("a"),
+                HtmlValue("aaaa"),
+                EndTagStart("b"),
+                TagEnd("b"),
             ), actual
         )
     }
