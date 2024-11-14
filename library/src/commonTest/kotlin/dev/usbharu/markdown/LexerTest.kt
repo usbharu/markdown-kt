@@ -608,4 +608,156 @@ class LexerTest {
             ), actual
         )
     }
+
+    @Test
+    fun urlとタイトル() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("[alt](https://example.com \"example\")")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                SquareBracketStart,
+                Text("alt"),
+                SquareBracketEnd,
+                ParenthesesStart,
+                Url("https://example.com"),
+                UrlTitle("example"),
+                ParenthesesEnd
+            ), actual
+        )
+    }
+
+    @Test
+    fun urlとタイトル全角() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("[alt](https://example.com \"example)")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                SquareBracketStart,
+                Text("alt"),
+                SquareBracketEnd,
+                ParenthesesStart,
+                Url("https://example.com"),
+                UrlTitle("example"),
+                ParenthesesEnd
+            ), actual
+        )
+    }
+
+    @Test
+    fun インラインコードブロック() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("`code`")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                InlineCodeBlock("code"),
+            ), actual
+        )
+    }
+
+    @Test
+    fun インラインコードブロック2() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("aiueo`code`abcd")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Text("aiueo"),
+                InlineCodeBlock("code"),
+                Text("abcd"),
+            ), actual
+        )
+    }
+
+
+    @Test
+    fun コードブロック() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex(
+            """```
+            |code
+            |```
+        """.trimMargin()
+        )
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                CodeBlock("code"),
+            ), actual
+        )
+    }
+
+    @Test
+    fun 言語指定付きコードブロック() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex(
+            """```hoge
+            |code
+            |```
+        """.trimMargin()
+        )
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                CodeBlockLanguage("hoge", ""),
+                CodeBlock("code"),
+            ), actual
+        )
+    }
+
+    @Test
+    fun ファイル名と言語コードブロック() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex(
+            """```hoge:fuga
+            |code
+            |```
+        """.trimMargin()
+        )
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                CodeBlockLanguage("hoge", "fuga"),
+                CodeBlock("code"),
+            ), actual
+        )
+    }
+
+    @Test
+    fun コードブロックかと思ったら違った() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("````aiueo")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Text("```"), Text("`aiueo")
+            ), actual
+        )
+    }
 }
