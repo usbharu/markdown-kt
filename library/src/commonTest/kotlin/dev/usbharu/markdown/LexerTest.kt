@@ -2,6 +2,7 @@ package dev.usbharu.markdown
 
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
 
 class LexerTest {
 
@@ -822,6 +823,65 @@ class LexerTest {
                 Asterisk(1, '*'),
                 Text("a"),
                 Asterisk(1, '*')
+            ), actual
+        )
+    }
+
+    @Test
+    fun peekStringTest() {
+        val lexer = Lexer()
+        val iterator = PeekableCharIterator("*a**a***".toCharArray())
+        val peekString = lexer.peekString(iterator, '*', '*', '*')
+
+        println(peekString)
+
+        assertEquals("*a**a", peekString)
+    }
+
+    @Test
+    fun 打ち消し線() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("~~aiueo~~")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Strike("aiueo")
+            ), actual
+        )
+    }
+
+    @Test
+    fun 打ち消し線2() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("aiueo ~~aiueo~~bcde")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Text("aiueo"),
+                Whitespace(1, ' '),
+                Strike("aiueo"),
+                Text("bcde")
+            ), actual
+        )
+    }
+
+    @Test
+    fun 打ち消し線かと思ったら違った() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("aiueo~~abcd")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Text("aiueo~~abcd")
             ), actual
         )
     }

@@ -68,6 +68,20 @@ class Lexer {
                             }
                         }
 
+                        next == '~' || next == '～' -> {
+                            if (iterator.peekOrNull() == next) {
+                                iterator.next()
+                                val peekString = peekString(iterator, next, next)
+                                if (peekString == null) {
+                                    addText(tokens, "$next$next")
+                                } else {
+                                    tokens.add(Strike(peekString))
+                                    iterator.skip(peekString.length + 2)
+                                }
+                            } else {
+                                addText(tokens, next.toString())
+                            }
+                        }
 
                         else -> {
                             addText(tokens, next.toString())
@@ -88,7 +102,6 @@ class Lexer {
             inQuote = false
         }
 
-        println(tokens)
         val lastToken = tokens.lastOrNull()
         if (lastToken is Break) {
             if (lastToken.count == 1) {
@@ -161,7 +174,7 @@ class Lexer {
             }
 
         } else {
-            val peekString = peekString(next, iterator)
+            val peekString = peekString(iterator, next)
             if (peekString != null && peekString.isEmpty()) {
                 addText(tokens, "$next$next")
                 iterator.next()
@@ -345,17 +358,24 @@ class Lexer {
         return count
     }
 
-    fun peekString(char: Char, iterator: PeekableCharIterator): String? {
+    fun peekString(iterator: PeekableCharIterator, vararg char: Char): String? {
         var counter = 0
         val stringBuilder = StringBuilder()
-        while (iterator.peekOrNull(counter) != null && iterator.peekOrNull(counter) != char) {
+        var checkCounter = 0
+        while (iterator.peekOrNull(counter) != null && checkCounter < char.size) {
             stringBuilder.append(iterator.peekOrNull(counter))
+            if (iterator.peekOrNull(counter) == char[checkCounter]) {
+                checkCounter++
+            } else {
+                checkCounter = 0
+            }
             counter++
         }
-        if (iterator.peekOrNull(counter) == null) {
+        if (iterator.peekOrNull(counter) == null && checkCounter != char.size) {
             return null
         }
-        return stringBuilder.toString()
+        val string = stringBuilder.toString()
+        return string.substring(0, string.length - char.size)
     }
 
     fun collect(iterator: PeekableCharIterator): String {
