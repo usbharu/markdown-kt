@@ -805,4 +805,19 @@ class LexerTest {
             ), actual
         )
     }
+
+    @Test
+    fun コードブロックかと思ったらアスタリスク() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("aiueo ```abcd*a*")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Text("aiueo"), Whitespace(1, ' '), Text("```abcd")
+            ), actual
+        )
+    }
 }
