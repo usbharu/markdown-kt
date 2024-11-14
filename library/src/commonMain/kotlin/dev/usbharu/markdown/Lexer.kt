@@ -64,18 +64,13 @@ class Lexer {
                             if (iterator.peekOrNull() == '[') {
                                 tokens.add(Exclamation)
                             } else {
-                                tokens.add(Text("!"))
+                                addText(tokens, "!")
                             }
                         }
 
 
                         else -> {
-                            val lastToken = tokens.lastOrNull()
-                            if (lastToken is Text) {
-                                lastToken.text += next.toString()
-                            } else {
-                                tokens.add(Text(next.toString()))
-                            }
+                            addText(tokens, next.toString())
                         }
                     }
                     if (!inline && tokens.lastOrNull() !is Whitespace) { //行頭が空白の場合は一旦無視する
@@ -105,13 +100,22 @@ class Lexer {
         return tokens
     }
 
+    private fun addText(tokens: MutableList<Token>, next: String) {
+        val lastToken = tokens.lastOrNull()
+        if (lastToken is Text) {
+            lastToken.text += next
+        } else {
+            tokens.add(Text(next))
+        }
+    }
+
     private fun codeblock(
         iterator: PeekableCharIterator,
         next: Char,
         tokens: MutableList<Token>,
         inCode: Boolean,
         codeBuffer: StringBuilder,
-        inline: Boolean
+        inline: Boolean,
     ): Boolean {
         var inCode1 = inCode
         if (iterator.peekOrNull() == next && !inline) { //行頭かつ次の文字が`
@@ -157,20 +161,16 @@ class Lexer {
             }
 
         } else {
-            val codeBuilder = StringBuilder()
-            while (iterator.hasNext() && iterator.peekOrNull() != next) {
-                codeBuilder.append(iterator.next())
-            }
-            if (iterator.hasNext() && iterator.next() == next) { //インラインコードブロックかと思ったら違った
-                if (codeBuilder.isEmpty()) {
-                    tokens.add(Text("$next$next"))
-                } else {
-                    tokens.add(InlineCodeBlock(codeBuilder.toString()))
-                }
+            val peekString = peekString(next, iterator)
+            if (peekString != null && peekString.isEmpty()) {
+                addText(tokens, "$next$next")
+                iterator.next()
+            } else if (peekString != null) {
+                tokens.add(InlineCodeBlock(peekString))
+                iterator.skip(peekString.length + 1)
             } else {
-                tokens.add(Text(codeBuilder.insert(0, next).toString()))
+                addText(tokens, next.toString())
             }
-
         }
         return inCode1
     }
@@ -343,6 +343,19 @@ class Lexer {
             count++
         }
         return count
+    }
+
+    fun peekString(char: Char, iterator: PeekableCharIterator): String? {
+        var counter = 0
+        val stringBuilder = StringBuilder()
+        while (iterator.peekOrNull(counter) != null && iterator.peekOrNull(counter) != char) {
+            stringBuilder.append(iterator.peekOrNull(counter))
+            counter++
+        }
+        if (iterator.peekOrNull(counter) == null) {
+            return null
+        }
+        return stringBuilder.toString()
     }
 
     fun collect(iterator: PeekableCharIterator): String {

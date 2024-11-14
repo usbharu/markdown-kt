@@ -756,7 +756,7 @@ class LexerTest {
 
         assertContentEquals(
             listOf(
-                Text("```"), Text("`aiueo")
+                Text("````aiueo")
             ), actual
         )
     }
@@ -816,7 +816,12 @@ class LexerTest {
 
         assertContentEquals(
             listOf(
-                Text("aiueo"), Whitespace(1, ' '), Text("```abcd")
+                Text("aiueo"),
+                Whitespace(1, ' '),
+                Text("```abcd"),
+                Asterisk(1, '*'),
+                Text("a"),
+                Asterisk(1, '*')
             ), actual
         )
     }
