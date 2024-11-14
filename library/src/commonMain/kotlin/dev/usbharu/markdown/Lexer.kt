@@ -7,91 +7,36 @@ class Lexer {
         val tokens = mutableListOf<Token>()
         val lines = PeekableStringIterator(input.lines())
 
-        var inQuote = false
-        var inCode = false
-
+        var inQuote = false //引用中の判断
+        var inCode = false //コードブロック内の判断
+        var inline = false //行頭の判断
         val codeBuffer = StringBuilder()
 
         line@ while (lines.hasNext()) {
-
+            inline = false //改行時にリセット
             if (lines.peekOrNull() == "") {
                 blankLine(lines, tokens)
             } else {
                 val line = lines.next()
-
                 val iterator = PeekableCharIterator(line.toCharArray())
                 char@ while (iterator.hasNext()) {
                     val next = iterator.next()
                     when {
                         next == '`' || next == '｀' -> {
-                            //todo ````` のようなやつが来たときのことを考える
-                            if (iterator.peekOrNull() == next) {
-                                val codeBlockBuilder = StringBuilder()
-                                codeBlockBuilder.append(next)
-                                codeBlockBuilder.append(iterator.next())
-                                if (iterator.peekOrNull() == next) {
-                                    codeBlockBuilder.append(iterator.next())
-                                    if (iterator.peekOrNull() == next) {
-                                        tokens.add(Text(codeBlockBuilder.toString()))
-                                    } else {
-                                        if (inCode) {
-                                            inCode = false
-                                            tokens.add(CodeBlock(codeBuffer.toString().trimStart('\n').trimEnd('\n')))
-                                            codeBuffer.clear()
-                                        } else {
-                                            inCode = true
-                                            var inFilename = false
-                                            val language = StringBuilder()
-                                            val filename = StringBuilder()
-                                            if (iterator.hasNext()) {
-                                                codeBlock@ while (iterator.hasNext()) {
-                                                    val nextLanguage = iterator.next()
-                                                    if ((nextLanguage == ':' || nextLanguage == '：') && !inFilename) {
-                                                        inFilename = true
-                                                        continue@codeBlock
-                                                    }
-                                                    if (inFilename) {
-                                                        filename.append(nextLanguage)
-                                                    } else {
-                                                        language.append(nextLanguage)
-                                                    }
-
-                                                }
-                                                tokens.add(CodeBlockLanguage(language.toString(), filename.toString()))
-                                            }
-
-                                        }
-                                    }
-
-                                } else if (iterator.peekOrNull() == null) {
-                                    tokens.add(Text(codeBlockBuilder.toString()))
-                                }
-
-                            } else {
-                                val codeBuilder = StringBuilder()
-                                while (iterator.hasNext() && iterator.peekOrNull() != next) {
-                                    codeBuilder.append(iterator.next())
-                                }
-                                if (iterator.hasNext() && iterator.next() == next) { //インラインコードブロックかと思ったら違った
-                                    tokens.add(InlineCodeBlock(codeBuilder.toString()))
-                                } else {
-                                    tokens.add(Text(codeBuilder.insert(0, next).toString()))
-                                }
-
-                            }
+                            inCode = codeblock(iterator, next, tokens, inCode, codeBuffer, inline)
                         }
 
                         inCode -> {
                             codeBuffer.append(next)
                         }
 
-                        next == '#' || next == '＃' -> header(iterator, tokens)
-                        (next == '>' || next == '＞') && !inQuote -> {
+                        (next == '#' || next == '＃') && !inline -> header(iterator, tokens)
+                        (next == '>' || next == '＞') && !inQuote && !inline -> {
                             inQuote = true
                             quote(iterator, tokens)
                         }
 
-                        next == '-' || next == '=' || next == 'ー' || next == '＝' -> {
+                        (next == '-' || next == '=' || next == 'ー' || next == '＝') && !inline -> {
                             if (iterator.peekOrNull()?.isWhitespace() == true) { //-の直後がスペースならリストの可能性
                                 list(iterator, tokens)
                             } else {//それ以外ならセパレーターの可能性
@@ -99,7 +44,7 @@ class Lexer {
                             }
                         }
 
-                        next in '0'..'9' || next in '０'..'９' ->
+                        (next in '0'..'9' || next in '０'..'９') && !inline ->
                             decimalList(iterator, tokens, next)
 
                         next == '[' || next == '「' -> tokens.add(SquareBracketStart)
@@ -133,6 +78,9 @@ class Lexer {
                             }
                         }
                     }
+                    if (!inline && tokens.lastOrNull() !is Whitespace) { //行頭が空白の場合は一旦無視する
+                        inline = true
+                    }
                 }
 
 
@@ -155,6 +103,76 @@ class Lexer {
             }
         }
         return tokens
+    }
+
+    private fun codeblock(
+        iterator: PeekableCharIterator,
+        next: Char,
+        tokens: MutableList<Token>,
+        inCode: Boolean,
+        codeBuffer: StringBuilder,
+        inline: Boolean
+    ): Boolean {
+        var inCode1 = inCode
+        if (iterator.peekOrNull() == next && !inline) { //行頭かつ次の文字が`
+            val codeBlockBuilder = StringBuilder()
+            codeBlockBuilder.append(next)
+            codeBlockBuilder.append(iterator.next())
+            if (iterator.peekOrNull() == next) {
+                codeBlockBuilder.append(iterator.next())
+                if (iterator.peekOrNull() == next) {
+                    tokens.add(Text(codeBlockBuilder.toString()))
+                } else {
+                    if (inCode1) {
+                        inCode1 = false
+                        tokens.add(CodeBlock(codeBuffer.toString().trimStart('\n').trimEnd('\n')))
+                        codeBuffer.clear()
+                    } else {
+                        inCode1 = true
+                        var inFilename = false
+                        val language = StringBuilder()
+                        val filename = StringBuilder()
+                        if (iterator.hasNext()) {
+                            codeBlock@ while (iterator.hasNext()) {
+                                val nextLanguage = iterator.next()
+                                if ((nextLanguage == ':' || nextLanguage == '：') && !inFilename) {
+                                    inFilename = true
+                                    continue@codeBlock
+                                }
+                                if (inFilename) {
+                                    filename.append(nextLanguage)
+                                } else {
+                                    language.append(nextLanguage)
+                                }
+
+                            }
+                            tokens.add(CodeBlockLanguage(language.toString(), filename.toString()))
+                        }
+
+                    }
+                }
+
+            } else if (iterator.peekOrNull() == null) {
+                tokens.add(Text(codeBlockBuilder.toString()))
+            }
+
+        } else {
+            val codeBuilder = StringBuilder()
+            while (iterator.hasNext() && iterator.peekOrNull() != next) {
+                codeBuilder.append(iterator.next())
+            }
+            if (iterator.hasNext() && iterator.next() == next) { //インラインコードブロックかと思ったら違った
+                if (codeBuilder.isEmpty()) {
+                    tokens.add(Text("$next$next"))
+                } else {
+                    tokens.add(InlineCodeBlock(codeBuilder.toString()))
+                }
+            } else {
+                tokens.add(Text(codeBuilder.insert(0, next).toString()))
+            }
+
+        }
+        return inCode1
     }
 
     private fun asterisk(

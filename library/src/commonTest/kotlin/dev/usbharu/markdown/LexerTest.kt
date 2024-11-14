@@ -760,4 +760,49 @@ class LexerTest {
             ), actual
         )
     }
+
+    @Test
+    fun 唐突のヘッダー() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("aiueo #a")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Text("aiueo"), Whitespace(1, ' '), Text("#a")
+            ), actual
+        )
+    }
+
+    @Test
+    fun 唐突のリスト() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("aiueo - a")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Text("aiueo"), Whitespace(1, ' '), Text("-"), Whitespace(1, ' '), Text("a")
+            ), actual
+        )
+    }
+
+    @Test
+    fun 唐突のコードブロック() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("aiueo ```abcd")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Text("aiueo"), Whitespace(1, ' '), Text("```abcd")
+            ), actual
+        )
+    }
 }
