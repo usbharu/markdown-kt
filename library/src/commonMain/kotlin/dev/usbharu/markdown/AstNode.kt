@@ -76,13 +76,35 @@ sealed class AstNode {
         }
     }
 
-    data class ImageNode(val urlUrlNode: UrlNode) : InlineNode()
+    data class ImageNode(val urlUrlNode: UrlNode) : InlineNode() {
+        override fun print(): String {
+            return "!" + urlUrlNode.print()
+        }
+    }
 
     data class UrlNode(val url: UrlUrlNode, val urlNameNode: UrlNameNode, val urlTitleNode: UrlTitleNode?) :
-        InlineNode()
+        InlineNode() {
+        override fun print(): String {
+            return "[${urlNameNode.print()}](${url.print()} ${urlTitleNode?.print().orEmpty()})"
+        }
+    }
 
-    data class UrlUrlNode(val url: String) : InlineNode()
-    data class UrlTitleNode(val title: String) : InlineNode()
-    data class UrlNameNode(val name: String) : InlineNode()
+    data class UrlUrlNode(val url: String) : InlineNode() {
+        override fun print(): String {
+            return url
+        }
+    }
+
+    data class UrlTitleNode(val title: String) : InlineNode() {
+        override fun print(): String {
+            return "\"$title\""
+        }
+    }
+
+    data class UrlNameNode(val name: String) : InlineNode() {
+        override fun print(): String {
+            return name
+        }
+    }
 }
 
