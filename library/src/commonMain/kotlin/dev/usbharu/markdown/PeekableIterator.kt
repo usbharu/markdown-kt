@@ -36,3 +36,27 @@ class PeekableStringIterator(private val list: List<String>) : Iterator<String> 
 
     fun current(): Int = index
 }
+
+class PeekableTokenIterator(private val tokens: List<Token>) : Iterator<Token> {
+    private var index = 0
+    override fun hasNext(): Boolean = index < tokens.size
+    override fun next(): Token = try {
+        tokens[index++]
+    } catch (e: IndexOutOfBoundsException) {
+        index -= 1; throw NoSuchElementException(e.message)
+    }
+
+    fun peekOrNull(): Token? = tokens.getOrNull(index)
+
+    fun peekOrNull(offset: Int): Token? = tokens.getOrNull(index + offset)
+
+    fun current(): Int = index
+    fun skip(count: Int = 0) {
+        index += count
+    }
+
+    fun print() {
+        println("token: $tokens\nindex: $index")
+
+    }
+}

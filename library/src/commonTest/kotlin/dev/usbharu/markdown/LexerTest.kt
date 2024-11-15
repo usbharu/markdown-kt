@@ -129,6 +129,41 @@ class LexerTest {
     }
 
     @Test
+    fun ヘッダー後の改行() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("# a\n# b")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Header(1),
+                Text("a"),
+                Break(1),
+                Header(1),
+                Text("b")
+            ), actual
+        )
+    }
+
+    @Test
+    fun ヘッダー複数() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("# a a a")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Header(1),
+                Text("a a a"),
+            ), actual
+        )
+    }
+
+    @Test
     fun 引用() {
         val lexer = Lexer()
 
@@ -503,6 +538,25 @@ class LexerTest {
         assertContentEquals(
             listOf(
                 Asterisk(2, '*'), Text("a"), Asterisk(2, '*')
+            ), actual
+        )
+    }
+
+    @Test
+    fun アスタリスク複数2() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("***a**b*")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Asterisk(3, '*'),
+                Text("a"),
+                Asterisk(2, '*'),
+                Text("b"),
+                Asterisk(1, '*'),
             ), actual
         )
     }
