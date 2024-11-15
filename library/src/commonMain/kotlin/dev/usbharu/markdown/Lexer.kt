@@ -1,7 +1,10 @@
 package dev.usbharu.markdown
 
+import dev.usbharu.markdown.Token.*
 import kotlin.collections.List
+import kotlin.js.JsExport
 
+@JsExport
 class Lexer {
     fun lex(input: String): List<Token> {
         val tokens = mutableListOf<Token>()

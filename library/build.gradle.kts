@@ -27,12 +27,11 @@ kotlin {
     linuxX64()
     mingwX64()
     @OptIn(ExperimentalWasmDsl::class)
-    wasmWasi {
-        nodejs()
-    }
     js {
         browser()
         nodejs()
+        binaries.library()
+        generateTypeScriptDefinitions()
     }
 
     sourceSets {

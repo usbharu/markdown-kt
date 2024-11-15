@@ -1,7 +1,11 @@
 package dev.usbharu.markdown
 
+import dev.usbharu.markdown.AstNode.*
+import dev.usbharu.markdown.Token.*
 import kotlin.collections.List
+import kotlin.js.JsExport
 
+@JsExport
 class Parser {
     fun parse(tokens: List<Token>): AstNode {
         val iterator = PeekableTokenIterator(tokens)
@@ -18,7 +22,7 @@ class Parser {
                 Exclamation -> TODO()
                 is Header -> header(next, iterator)
                 is Html -> TODO()
-                is dev.usbharu.markdown.List -> TODO()
+                is Token.List -> TODO()
                 ParenthesesEnd -> TODO()
                 ParenthesesStart -> TODO()
                 is Quote -> TODO()
