@@ -59,7 +59,7 @@ class LexerTest {
 
         println(actual)
 
-        assertContentEquals(listOf(Text("abcd"), Break(1), Text("efg"), Text("h")), actual)
+        assertContentEquals(listOf(Text("abcd"), Break(1), Text("efgh")), actual)
     }
 
     @Test
@@ -70,7 +70,7 @@ class LexerTest {
 
         println(actual)
 
-        assertContentEquals(listOf(Text("abcd"), Break(2), Text("efg"), Text("h")), actual)
+        assertContentEquals(listOf(Text("abcd"), Break(2), Text("efgh")), actual)
     }
 
     @Test
@@ -659,6 +659,27 @@ class LexerTest {
         val lexer = Lexer()
 
         val actual = lexer.lex("[alt](https://example.com \"example)")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                SquareBracketStart,
+                Text("alt"),
+                SquareBracketEnd,
+                ParenthesesStart,
+                Url("https://example.com"),
+                UrlTitle("example"),
+                ParenthesesEnd
+            ), actual
+        )
+    }
+
+    @Test
+    fun 不正urlとタイトル() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("[alt](../hoge.html \"example\")")
 
         println(actual)
 

@@ -52,6 +52,11 @@ sealed class AstNode {
     }
 
     sealed class InlineNode : AstNode(), QuotableNode
+    data class InlineNodes(val nodes: MutableList<InlineNode>) : InlineNode() {
+        override fun print(): String {
+            return nodes.joinToString("") { it.print() }
+        }
+    }
     data class ItalicNode(val nodes: MutableList<InlineNode>) : InlineNode() {
         override fun print(): String {
             return nodes.joinToString("", prefix = "*", postfix = "*") { it.print() }
@@ -70,5 +75,14 @@ sealed class AstNode {
             return text
         }
     }
+
+    data class ImageNode(val urlUrlNode: UrlNode) : InlineNode()
+
+    data class UrlNode(val url: UrlUrlNode, val urlNameNode: UrlNameNode, val urlTitleNode: UrlTitleNode?) :
+        InlineNode()
+
+    data class UrlUrlNode(val url: String) : InlineNode()
+    data class UrlTitleNode(val title: String) : InlineNode()
+    data class UrlNameNode(val name: String) : InlineNode()
 }
 

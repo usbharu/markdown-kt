@@ -251,4 +251,62 @@ class ParserTest {
             ), actual
         )
     }
+
+    @Test
+    fun アスタリスク不正() {
+        val parser = Parser()
+
+        val actual = parser.parse(listOf(Asterisk(2, '*'), Text("a"), Asterisk(1, '*')))
+
+        println(actual)
+        println(actual.print())
+
+        assertEquals(
+            RootNode(
+                BodyNode(
+                    listOf(
+                        ParagraphNode(listOf(BoldNode(mutableListOf(PlainText("a")))))
+                    )
+                )
+            ), actual
+        )
+    }
+
+    @Test
+    fun url() {
+        val parser = Parser()
+
+        val actual = parser.parse(
+            listOf(
+                SquareBracketStart,
+                Text("alt"),
+                SquareBracketEnd,
+                ParenthesesStart,
+                Url("https://example.com"),
+                UrlTitle("example"),
+                ParenthesesEnd
+            )
+        )
+
+        println(actual)
+        println(actual.print())
+
+        assertEquals(
+            RootNode(
+                BodyNode(
+                    listOf(
+                        ParagraphNode(
+                            listOf(
+                                UrlNode(
+                                    UrlUrlNode("https://example.com"),
+                                    UrlNameNode("alt"), UrlTitleNode("example")
+                                )
+
+                            )
+                        )
+                    )
+                )
+            ), actual
+        )
+    }
 }

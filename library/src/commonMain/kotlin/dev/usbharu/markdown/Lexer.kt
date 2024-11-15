@@ -315,7 +315,7 @@ class Lexer {
             val nextC = charIterator.peekOrNull() ?: return
             val nextC2 = iterator.peekOrNull() ?: return
             if (nextC != nextC2) {
-                tokens.add(Text(urlBuilder.toString()))
+                addText(tokens, urlBuilder.toString())
                 return
             }
             urlBuilder.append(nextC2)
@@ -323,7 +323,7 @@ class Lexer {
             iterator.next()
         }
         if (urlBuilder.length == 1) {
-            tokens.add(Text(urlBuilder.toString())) //hだけのときはURLじゃないのでテキストとして追加
+            addText(tokens, urlBuilder.toString()) //hだけのときはURLじゃないのでテキストとして追加
         } else {
             while (iterator.hasNext() && (iterator.peekOrNull()
                     ?.isWhitespace() != true && iterator.peekOrNull() != ')')

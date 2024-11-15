@@ -1,7 +1,5 @@
 package dev.usbharu.markdown
 
-import kotlin.collections.List
-
 class PeekableCharIterator(private val charArray: CharArray) : Iterator<Char> {
     private var index = 0
     override fun hasNext(): Boolean = index < charArray.size
@@ -51,7 +49,7 @@ class PeekableTokenIterator(private val tokens: List<Token>) : Iterator<Token> {
     fun peekOrNull(offset: Int): Token? = tokens.getOrNull(index + offset)
 
     fun current(): Int = index
-    fun skip(count: Int = 0) {
+    fun skip(count: Int = 1) {
         index += count
     }
 
