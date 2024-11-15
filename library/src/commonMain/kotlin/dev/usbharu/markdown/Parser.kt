@@ -10,7 +10,7 @@ class Parser {
         val nodes = mutableListOf<AstNode>()
         while (iterator.hasNext()) {
             val node = when (val next = iterator.next()) {
-                is Asterisk -> paragraph(next, iterator)
+                is Asterisk, is InlineCodeBlock, is Strike, is Text -> paragraph(next, iterator)
                 is Break -> null
                 is CheckBox -> TODO()
                 is CodeBlock -> TODO()
@@ -18,7 +18,6 @@ class Parser {
                 Exclamation -> TODO()
                 is Header -> header(next, iterator)
                 is Html -> TODO()
-                is InlineCodeBlock -> TODO()
                 is dev.usbharu.markdown.List -> TODO()
                 ParenthesesEnd -> TODO()
                 ParenthesesStart -> TODO()
@@ -26,8 +25,6 @@ class Parser {
                 is Separator -> separator(next, iterator)
                 SquareBracketEnd -> TODO()
                 SquareBracketStart -> TODO()
-                is Strike -> TODO()
-                is Text -> paragraph(next, iterator)
                 is Url -> TODO()
                 is UrlTitle -> TODO()
                 is Whitespace -> TODO()
