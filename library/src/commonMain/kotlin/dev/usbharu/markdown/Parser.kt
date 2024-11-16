@@ -28,8 +28,9 @@ class Parser {
                 is Header -> header(next, iterator)
                 is Html -> TODO()
                 is Token.List -> TODO()
-                is Quote -> TODO()
+                is Quote -> quote(next, iterator)
                 is Separator -> separator(next, iterator)
+                InQuoteBreak -> TODO()
             }
             if (node != null) {
                 nodes.add(node)
@@ -37,6 +38,44 @@ class Parser {
         }
         return RootNode(BodyNode(nodes))
     }
+
+    tailrec fun addQuote(quoteNode: QuoteNode, quotableNode: List<QuotableNode>, nest: Int) {
+        if (nest == 1) {
+            quoteNode.nodes.addAll(quotableNode)
+            return
+        }
+        addQuote(quoteNode.nodes.findLast { it is QuoteNode } as QuoteNode, quotableNode, nest.dec())
+    }
+
+    fun quote(quote: Quote, iterator: PeekableTokenIterator): QuoteNode {
+        var quote2 = quote
+        var maxNest = quote.count
+        val quoteNode = createNest(maxNest)
+        while (true) {
+            val list = mutableListOf<QuotableNode>()
+            while (isInline(iterator.peekOrNull()) && iterator.peekOrNull() !is InQuoteBreak) {
+                println("next token: " + iterator.peekOrNull())
+                list.addAll(inline(iterator.next(), iterator))
+            }
+            if (iterator.peekOrNull() is InQuoteBreak) {
+                list.add(BreakNode)
+                iterator.skip()
+            }
+            if (maxNest < quote2.count) {
+                addQuote(quoteNode, mutableListOf(createNest(quote2.count - maxNest)), maxNest)
+                maxNest = quote2.count
+            }
+            addQuote(quoteNode, list, quote2.count)
+            if (iterator.peekOrNull() is Quote) {
+                quote2 = iterator.next() as Quote
+            } else {
+                break
+            }
+
+        }
+        return quoteNode
+    }
+
 
     fun separator(separator: Separator, iterator: PeekableTokenIterator): AstNode {
         return SeparatorNode
@@ -74,7 +113,7 @@ class Parser {
         return when (token) {
             is Asterisk, is InlineCodeBlock, is Strike,
             is Text, is Whitespace, Exclamation, ParenthesesEnd, ParenthesesStart,
-            SquareBracketStart, SquareBracketEnd, is Url, is UrlTitle, is LineBreak -> true
+            SquareBracketStart, SquareBracketEnd, is Url, is UrlTitle, is LineBreak, is InQuoteBreak -> true
 
             else -> false
         }
@@ -97,7 +136,10 @@ class Parser {
             is UrlTitle -> PlainText("\"${token.title}\"")
             is Whitespace -> whitespace(token, iterator)
             is LineBreak -> null
-            else -> TODO()
+            else -> {
+                println("error" + token)
+                TODO()
+            }
         }
 
         if (node != null) {
@@ -270,5 +312,21 @@ class Parser {
         println("return null")
         iterator.print()
         return null
+    }
+
+    companion object {
+        fun createNest(nest: Int, quoteNode: QuoteNode = QuoteNode(mutableListOf())): QuoteNode {
+            createNest2(nest, quoteNode, quoteNode)
+            return quoteNode
+        }
+
+        tailrec fun createNest2(nest: Int, current: QuoteNode, quoteNode: QuoteNode): QuoteNode {
+            if (nest == 1) {
+                return quoteNode
+            }
+            val element = QuoteNode(mutableListOf())
+            current.nodes.add(element)
+            return createNest2(nest - 1, element, quoteNode)
+        }
     }
 }

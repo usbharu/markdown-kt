@@ -220,6 +220,30 @@ class LexerTest {
     }
 
     @Test
+    fun 引用複数行() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("> aiueo\n>> >abcd\n> hoge\nfuga")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Quote(1),
+                Text("aiueo"),
+                InQuoteBreak,
+                Quote(2),
+                Text(">abcd"),
+                InQuoteBreak,
+                Quote(1),
+                Text("hoge"),
+                InQuoteBreak,
+                Text("fuga")
+            ), actual
+        )
+    }
+
+    @Test
     fun セパレーター() {
         val lexer = Lexer()
 

@@ -16,7 +16,13 @@ sealed class AstNode {
 
     data class BodyNode(val body: List<AstNode>) : AstNode() {
         override fun print(): String {
-            return body.joinToString("\n") { it.print() }
+            return body.joinToString("") {
+                if (it is BlockNode) {
+                    it.print() + "\n"
+                } else {
+                    it.print()
+                }
+            }
         }
     }
 
@@ -34,8 +40,30 @@ sealed class AstNode {
         }
     }
 
-    sealed interface QuotableNode
-    data class QuoteNode(val nodes: List<QuotableNode>) : AstNode(), QuotableNode
+    sealed interface QuotableNode {
+        fun print(): String
+    }
+
+    data class QuoteNode(val nodes: MutableList<QuotableNode>) : AstNode(), QuotableNode {
+        override fun print(): String {
+            return printNest(1)
+        }
+
+        fun printNest(nest: Int): String {
+            val builder = StringBuilder()
+            for (node in nodes) {
+                if (node is QuoteNode) {
+                    builder.append(node.printNest(nest + 1))
+                } else if (node is BreakNode) {
+                    builder.append(node.print())
+                } else {
+                    builder.append(">".repeat(nest)).append(' ').append(node.print())
+                }
+            }
+            return builder.toString()
+        }
+    }
+
     data object SeparatorNode : BlockNode() {
         override fun print(): String {
             return "---"
@@ -57,6 +85,7 @@ sealed class AstNode {
             return nodes.joinToString("") { it.print() }
         }
     }
+
     data class ItalicNode(val nodes: MutableList<InlineNode>) : InlineNode() {
         override fun print(): String {
             return nodes.joinToString("", prefix = "*", postfix = "*") { it.print() }
@@ -116,6 +145,12 @@ sealed class AstNode {
     data class SimpleUrlNode(val url: String) : InlineNode() {
         override fun print(): String {
             return url
+        }
+    }
+
+    data object BreakNode : InlineNode() {
+        override fun print(): String {
+            return "\n"
         }
     }
 }

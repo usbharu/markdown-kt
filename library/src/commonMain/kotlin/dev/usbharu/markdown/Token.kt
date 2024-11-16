@@ -7,6 +7,7 @@ sealed class Token {
     data class Text(var text: String) : Token()
     data class LineBreak(var count: Int) : Token()
     data object BlockBreak : Token()
+    data object InQuoteBreak : Token()
     data class Header(var count: Int) : Token()
     data class Quote(var count: Int) : Token()
     data class Separator(var count: Int, val char: Char) : Token()

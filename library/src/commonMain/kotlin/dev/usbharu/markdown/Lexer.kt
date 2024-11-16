@@ -89,7 +89,7 @@ class Lexer {
                 } else if (htmlNest != 0) {
                     codeBuffer.append(" ")
                 } else {
-                    addBreak(tokens)
+                    addBreak(tokens, inQuote)
                 }
             }
             inQuote = false
@@ -106,6 +106,9 @@ class Lexer {
         if (lastToken is BlockBreak) {
             tokens.removeLast()
             tokens.add(LineBreak(1))
+        }
+        if (lastToken is InQuoteBreak) {
+            tokens.removeLast()
         }
         return tokens
     }
@@ -527,7 +530,11 @@ class Lexer {
         }
     }
 
-    fun addBreak(tokens: MutableList<Token>) {
+    fun addBreak(tokens: MutableList<Token>, inQuote: Boolean = false) {
+        if (inQuote) {
+            tokens.add(InQuoteBreak)
+            return
+        }
         val lastOrNull = tokens.lastOrNull()
         if (lastOrNull is LineBreak && 1 <= lastOrNull.count) {
             tokens.removeLast()

@@ -343,4 +343,162 @@ class ParserTest {
             ), actual
         )
     }
+
+    @Test
+    fun createNest() {
+        val quoteNode = QuoteNode(mutableListOf(PlainText("aa")))
+        println(Parser.createNest(3, quoteNode))
+        println(quoteNode)
+    }
+
+    @Test
+    fun createNest2() {
+        val quoteNode = QuoteNode(mutableListOf(PlainText("aaa")))
+        Parser.createNest2(3, quoteNode, quoteNode)
+        println(quoteNode)
+    }
+
+    @Test
+    fun quote() {
+        val parser = Parser()
+
+        val actual = parser.parse(
+            listOf(
+                Quote(1), Text("a")
+            )
+        )
+
+        println(actual)
+        println(actual.print())
+
+        assertEquals(
+            RootNode(
+                BodyNode(
+                    listOf(
+                        QuoteNode(
+                            mutableListOf(
+                                PlainText("a")
+                            )
+                        )
+                    )
+                )
+            ), actual
+        )
+    }
+
+    @Test
+    fun quote2() {
+        val parser = Parser()
+
+        val actual = parser.parse(
+            listOf(
+                Quote(2), Text("a")
+            )
+        )
+
+        println(actual)
+        println(actual.print())
+
+        assertEquals(
+            RootNode(
+                BodyNode(
+                    listOf(
+                        QuoteNode(
+                            mutableListOf(
+                                QuoteNode(
+                                    mutableListOf(
+                                        PlainText("a")
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            ), actual
+        )
+    }
+
+    @Test
+    fun quote3() {
+        val parser = Parser()
+
+        val actual = parser.parse(
+            listOf(
+                Quote(2), Text("a"), InQuoteBreak, Quote(2), Text("abcd")
+            )
+        )
+
+        println(actual)
+        println(actual.print())
+
+        assertEquals(
+            RootNode(
+                BodyNode(
+                    listOf(
+                        QuoteNode(
+                            mutableListOf(
+                                QuoteNode(
+                                    mutableListOf(
+                                        PlainText("a"), BreakNode, PlainText("abcd")
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            ), actual
+        )
+    }
+
+    @Test
+    fun quote4() {
+        val parser = Parser()
+
+        val actual = parser.parse(
+            listOf(
+                Quote(1),
+                Text("aiueo"),
+                InQuoteBreak,
+                Quote(2),
+                Text(">abcd"),
+                InQuoteBreak,
+                Quote(1),
+                Text("hoge"),
+                InQuoteBreak,
+                Text("fuga")
+            )
+        )
+
+        println(actual)
+        println(actual.print())
+
+        assertEquals(
+            RootNode(
+                BodyNode(
+                    listOf(
+                        QuoteNode(
+                            mutableListOf(
+                                PlainText("aiueo"),
+                                BreakNode,
+                                QuoteNode(
+                                    mutableListOf(
+                                        PlainText(">abcd"),
+                                        BreakNode
+                                    )
+                                ),
+                                PlainText("hoge"),
+                                BreakNode
+                            )
+                        ),
+                        ParagraphNode(
+                            mutableListOf(
+                                PlainText("fuga")
+                            )
+                        )
+
+                    )
+                )
+            ), actual
+        )
+    }
 }
