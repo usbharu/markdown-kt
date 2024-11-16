@@ -16,12 +16,12 @@ class Parser {
             val node = when (val next = iterator.next()) {
                 is Asterisk, is InlineCodeBlock, is Strike,
                 is Text, is Whitespace, Exclamation, ParenthesesEnd, ParenthesesStart,
-                SquareBracketStart, SquareBracketEnd, is Url, is UrlTitle -> paragraph(
+                SquareBracketStart, SquareBracketEnd, is Url, is UrlTitle, is LineBreak -> paragraph(
                     next,
                     iterator
                 )
 
-                is Break -> null //todo ただの改行と段落分けの改行のトークンを分ける
+                is BlockBreak -> null
                 is CheckBox -> TODO()
                 is CodeBlock -> TODO()
                 is CodeBlockLanguage -> TODO()
@@ -53,8 +53,31 @@ class Parser {
         return HeaderNode(header.count, headerTextNode)
     }
 
-    fun paragraph(token: Token, iterator: PeekableTokenIterator): AstNode {
-        return ParagraphNode(inline(token, iterator))
+    fun paragraph(token: Token, iterator: PeekableTokenIterator): AstNode? {
+        val list = mutableListOf<InlineNode>()
+        var token2: Token? = token
+        do {
+            list.addAll(inline(token2!!, iterator))
+            if (iterator.hasNext() && isInline(iterator.peekOrNull())) {
+                token2 = iterator.next()
+            } else {
+                token2 = iterator.peekOrNull()
+            }
+        } while (iterator.hasNext() && isInline(token2))
+        if (list.isEmpty()) {
+            return null
+        }
+        return ParagraphNode(list)
+    }
+
+    fun isInline(token: Token?): Boolean {
+        return when (token) {
+            is Asterisk, is InlineCodeBlock, is Strike,
+            is Text, is Whitespace, Exclamation, ParenthesesEnd, ParenthesesStart,
+            SquareBracketStart, SquareBracketEnd, is Url, is UrlTitle, is LineBreak -> true
+
+            else -> false
+        }
     }
 
     fun inline(token: Token, iterator: PeekableTokenIterator): MutableList<InlineNode> {
@@ -63,20 +86,32 @@ class Parser {
         val node = when (token) {
             is Asterisk -> asterisk(token, iterator)
             Exclamation -> image(Exclamation, iterator)
-            is InlineCodeBlock -> TODO()
+            is InlineCodeBlock -> inlineCodeBlock(token, iterator)
             ParenthesesEnd -> PlainText(")")
             ParenthesesStart -> PlainText("(")
             SquareBracketEnd -> PlainText("]")
             SquareBracketStart -> url(SquareBracketStart, iterator)
             is Strike -> TODO()
             is Text -> plainText(token, iterator)
-            is Url -> TODO()
+            is Url -> inlineUrl(token, iterator)
             is UrlTitle -> PlainText("\"${token.title}\"")
             is Whitespace -> whitespace(token, iterator)
+            is LineBreak -> null
             else -> TODO()
         }
 
-        return mutableListOf(node)
+        if (node != null) {
+            return mutableListOf(node)
+        }
+        return mutableListOf()
+    }
+
+    fun inlineUrl(url: Url, iterator: PeekableTokenIterator): SimpleUrlNode {
+        return SimpleUrlNode(url.url)
+    }
+
+    fun inlineCodeBlock(inlineCodeBlock: InlineCodeBlock, iterator: PeekableTokenIterator): InlineCodeNode {
+        return InlineCodeNode(inlineCodeBlock.text)
     }
 
     fun whitespace(token: Whitespace, iterator: PeekableTokenIterator): InlineNode {
@@ -207,7 +242,7 @@ class Parser {
         var counter = 0
         val tokens = mutableListOf<Token>()
         while (iterator.peekOrNull(counter) != null &&
-            iterator.peekOrNull(counter) !is Break &&
+            iterator.peekOrNull(counter) !is LineBreak &&
             iterator.peekOrNull(counter) !is Asterisk
         ) {
             tokens.add(iterator.peekOrNull(counter)!!)

@@ -33,6 +33,10 @@ class PeekableStringIterator(private val list: List<String>) : Iterator<String> 
     fun peekOrNull(): String? = list.getOrNull(index)
 
     fun current(): Int = index
+
+    fun skip(count: Int = 1) {
+        index += count
+    }
 }
 
 class PeekableTokenIterator(private val tokens: List<Token>) : Iterator<Token> {

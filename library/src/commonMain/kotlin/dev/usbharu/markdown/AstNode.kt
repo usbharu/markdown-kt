@@ -106,5 +106,17 @@ sealed class AstNode {
             return name
         }
     }
+
+    data class InlineCodeNode(val code: String) : InlineNode() {
+        override fun print(): String {
+            return "`$code`"
+        }
+    }
+
+    data class SimpleUrlNode(val url: String) : InlineNode() {
+        override fun print(): String {
+            return url
+        }
+    }
 }
 

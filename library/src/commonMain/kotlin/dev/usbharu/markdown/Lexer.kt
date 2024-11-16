@@ -89,19 +89,23 @@ class Lexer {
                 } else if (htmlNest != 0) {
                     codeBuffer.append(" ")
                 } else {
-                    tokens.add(Break(1))
+                    addBreak(tokens)
                 }
             }
             inQuote = false
         }
 
         val lastToken = tokens.lastOrNull()
-        if (lastToken is Break) {
+        if (lastToken is LineBreak) {
             if (lastToken.count == 1) {
                 tokens.removeLast()
             } else {
                 lastToken.count--
             }
+        }
+        if (lastToken is BlockBreak) {
+            tokens.removeLast()
+            tokens.add(LineBreak(1))
         }
         return tokens
     }
@@ -517,15 +521,19 @@ class Lexer {
         lines: PeekableStringIterator,
         tokens: MutableList<Token>,
     ) {
-        var count = 0
         while (lines.peekOrNull() == "") {
-            lines.next()
-            count++
+            lines.skip()
+            addBreak(tokens)
         }
-        if (tokens.lastOrNull() is Break) {
-            tokens[tokens.lastIndex] = Break(count + 1)
+    }
+
+    fun addBreak(tokens: MutableList<Token>) {
+        val lastOrNull = tokens.lastOrNull()
+        if (lastOrNull is LineBreak && 1 <= lastOrNull.count) {
+            tokens.removeLast()
+            tokens.add(BlockBreak)
         } else {
-            tokens.add(Break(count))
+            tokens.add(LineBreak(1))
         }
     }
 }

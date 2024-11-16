@@ -30,7 +30,7 @@ class ParserTest {
     fun header複数() {
         val parser = Parser()
 
-        val actual = parser.parse(listOf(Header(1), Text("a b c"), Break(1), Header(2), Text("d e f")))
+        val actual = parser.parse(listOf(Header(1), Text("a b c"), LineBreak(1), Header(2), Text("d e f")))
 
         println(actual)
         println(actual.print())
@@ -235,7 +235,7 @@ class ParserTest {
     fun separator2() {
         val parser = Parser()
 
-        val actual = parser.parse(listOf(Separator(3, '-'), Break(1), Separator(3, '-')))
+        val actual = parser.parse(listOf(Separator(3, '-'), LineBreak(1), Separator(3, '-')))
 
         println(actual)
         println(actual.print())
@@ -302,6 +302,40 @@ class ParserTest {
                                     UrlNameNode("alt"), UrlTitleNode("example")
                                 )
 
+                            )
+                        )
+                    )
+                )
+            ), actual
+        )
+    }
+
+    @Test
+    fun 複数段落() {
+        val parser = Parser()
+
+        val actual = parser.parse(
+            listOf(
+                Text("aiueo"), LineBreak(1), Text("abcd"), BlockBreak, Text("hoge")
+            )
+        )
+
+        println(actual)
+        println(actual.print())
+
+        assertEquals(
+            RootNode(
+                BodyNode(
+                    listOf(
+                        ParagraphNode(
+                            listOf(
+                                PlainText("aiueo"),
+                                PlainText(("abcd"))
+                            )
+                        ),
+                        ParagraphNode(
+                            listOf(
+                                PlainText("hoge")
                             )
                         )
                     )

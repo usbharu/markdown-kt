@@ -15,7 +15,7 @@ class LexerTest {
 
         println(actual)
 
-        assertContentEquals(listOf(Break(1)), actual)
+        assertContentEquals(listOf(LineBreak(1)), actual)
     }
 
     @Test
@@ -26,7 +26,7 @@ class LexerTest {
 
         println(actual)
 
-        assertContentEquals(listOf(Break(1)), actual)
+        assertContentEquals(listOf(LineBreak(1)), actual)
     }
 
     @Test
@@ -37,7 +37,7 @@ class LexerTest {
 
         println(actual)
 
-        assertContentEquals(listOf(Break(2)), actual)
+        assertContentEquals(listOf(BlockBreak), actual)
     }
 
     @Test
@@ -59,7 +59,7 @@ class LexerTest {
 
         println(actual)
 
-        assertContentEquals(listOf(Text("abcd"), Break(1), Text("efgh")), actual)
+        assertContentEquals(listOf(Text("abcd"), LineBreak(1), Text("efgh")), actual)
     }
 
     @Test
@@ -70,7 +70,7 @@ class LexerTest {
 
         println(actual)
 
-        assertContentEquals(listOf(Text("abcd"), Break(2), Text("efgh")), actual)
+        assertContentEquals(listOf(Text("abcd"), BlockBreak, Text("efgh")), actual)
     }
 
     @Test
@@ -141,7 +141,7 @@ class LexerTest {
             listOf(
                 Header(1),
                 Text("a"),
-                Break(1),
+                LineBreak(1),
                 Header(1),
                 Text("b")
             ), actual
@@ -331,15 +331,15 @@ class LexerTest {
                 DiscList,
                 CheckBox(false),
                 Text("a"),
-                Break(1),
+                LineBreak(1),
                 DiscList,
                 CheckBox(true),
                 Text("b"),
-                Break(1),
+                LineBreak(1),
                 DiscList,
                 CheckBox(false),
                 Text("c"),
-                Break(1),
+                LineBreak(1),
                 DiscList,
                 CheckBox(true),
                 Text("d"),
@@ -366,7 +366,7 @@ class LexerTest {
 
         println(actual)
 
-        assertContentEquals(listOf(DiscList, Text("aiueo"), Break(1), DiscList, Text("abcd")), actual)
+        assertContentEquals(listOf(DiscList, Text("aiueo"), LineBreak(1), DiscList, Text("abcd")), actual)
     }
 
     @Test
@@ -378,7 +378,7 @@ class LexerTest {
         println(actual)
 
         assertContentEquals(
-            listOf(DiscList, Text("aiueo"), Break(1), Whitespace(4, ' '), DiscList, Text("abcd")), actual
+            listOf(DiscList, Text("aiueo"), LineBreak(1), Whitespace(4, ' '), DiscList, Text("abcd")), actual
         )
     }
 
@@ -392,7 +392,7 @@ class LexerTest {
 
         assertContentEquals(
             listOf(
-                DecimalList('1'), Text("aiueo"), Break(1), Whitespace(4, ' '), DecimalList('2'), Text("abcd")
+                DecimalList('1'), Text("aiueo"), LineBreak(1), Whitespace(4, ' '), DecimalList('2'), Text("abcd")
             ), actual
         )
     }
@@ -407,7 +407,7 @@ class LexerTest {
 
         assertContentEquals(
             listOf(
-                DecimalList('１'), Text("aiueo"), Break(1), Whitespace(4, ' '), DecimalList('２'), Text("abcd")
+                DecimalList('１'), Text("aiueo"), LineBreak(1), Whitespace(4, ' '), DecimalList('２'), Text("abcd")
             ), actual
         )
     }
@@ -422,7 +422,7 @@ class LexerTest {
 
         assertContentEquals(
             listOf(
-                DecimalList('1'), Text("aiueo"), Break(1), Whitespace(4, ' '), DecimalList('2'), Text("abcd")
+                DecimalList('1'), Text("aiueo"), LineBreak(1), Whitespace(4, ' '), DecimalList('2'), Text("abcd")
             ), actual
         )
     }
@@ -463,7 +463,7 @@ class LexerTest {
 
         assertContentEquals(
             listOf(
-                Text("こんにちは～"), Whitespace(1, ' '), Url("https://example.com"), Break(1), Text("あいうえお")
+                Text("こんにちは～"), Whitespace(1, ' '), Url("https://example.com"), LineBreak(1), Text("あいうえお")
             ), actual
         )
     }
