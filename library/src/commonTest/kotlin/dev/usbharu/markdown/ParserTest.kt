@@ -501,4 +501,37 @@ class ParserTest {
             ), actual
         )
     }
+
+    @Test
+    fun quoteと装飾() {
+
+        val parser = Parser()
+
+        val actual = parser.parse(
+            listOf(
+                Quote(1), Asterisk(1, '*'), Text("a"), Asterisk(1, '*')
+            )
+        )
+
+        println(actual)
+        println(actual.print())
+
+        assertEquals(
+            RootNode(
+                BodyNode(
+                    listOf(
+                        QuoteNode(
+                            mutableListOf(
+                                ItalicNode(
+                                    mutableListOf(PlainText("a"))
+                                )
+
+                            )
+                        )
+                    )
+                )
+            ), actual
+        )
+
+    }
 }
