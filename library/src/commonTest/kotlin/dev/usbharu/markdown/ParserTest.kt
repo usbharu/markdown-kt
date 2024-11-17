@@ -670,4 +670,43 @@ class ParserTest {
             ), actual
         )
     }
+
+    @Test
+    fun 異種list() {
+        val parser = Parser()
+
+        val actual = parser.parse(
+            listOf(
+                DiscList,
+                Text("aiueo"),
+                LineBreak(1),
+                DiscList,
+                Text("abcd"),
+                LineBreak(1),
+                DecimalList('1'),
+                Text("efgh"),
+                LineBreak(1),
+                DecimalList('1'),
+                Text("hoge")
+            )
+        )
+
+        println(actual)
+        println(actual.print())
+
+        assertEquals(
+            RootNode(
+                BodyNode(
+                    DiscListNode(
+                        ListItemNode(PlainText("aiueo")),
+                        ListItemNode(PlainText("abcd"))
+                    ),
+                    DecimalListNode(
+                        ListItemNode(PlainText("efgh")),
+                        ListItemNode(PlainText("hoge"))
+                    )
+                )
+            ), actual
+        )
+    }
 }

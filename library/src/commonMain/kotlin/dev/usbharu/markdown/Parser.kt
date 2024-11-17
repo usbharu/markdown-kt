@@ -78,12 +78,14 @@ class Parser {
             }
             val peekOrNull = iterator.peekOrNull()
             if (peekOrNull is Token.List) {
-                iterator.skip()
+
                 if (peekOrNull.type != list.type) {
                     if (item.isNotEmpty()) {
                         listItems.add(ListItemNode(item))
                     }
                     break
+                } else {
+                    iterator.skip()
                 }
             }
 
