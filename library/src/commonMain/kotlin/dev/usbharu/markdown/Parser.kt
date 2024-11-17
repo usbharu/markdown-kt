@@ -76,9 +76,17 @@ class Parser {
                 }
                 break
             }
-            while (iterator.peekOrNull() is Token.List) {
+            val peekOrNull = iterator.peekOrNull()
+            if (peekOrNull is Token.List) {
                 iterator.skip()
+                if (peekOrNull.type != list.type) {
+                    if (item.isNotEmpty()) {
+                        listItems.add(ListItemNode(item))
+                    }
+                    break
+                }
             }
+
             if (item.isNotEmpty()) {
                 listItems.add(ListItemNode(item))
             }

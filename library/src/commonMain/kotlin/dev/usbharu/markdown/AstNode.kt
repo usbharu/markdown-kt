@@ -86,16 +86,28 @@ sealed class AstNode {
         fun nestedPrint(nest: Int): String {
             val builder = StringBuilder()
             for (node in itemNode) {
-                builder.append(" ".repeat(nest)).append("- ").append(node.nestedPrint(nest)).append("\n")
+                builder.append(" ".repeat(nest)).append(char).append(" ").append(node.nestedPrint(nest)).append("\n")
             }
             return builder.toString().trim('\n')
         }
+
+        protected abstract val char: String
     }
 
-    data class DecimalListNode(override val itemNode: List<ListItemNode>) : ListNode(itemNode)
+    data class DecimalListNode(override val itemNode: List<ListItemNode>) : ListNode(itemNode) {
+        @JsName("with")
+        constructor(vararg nodes: ListItemNode) : this(nodes.toList())
+
+        override val char: String
+            get() = "1."
+    }
+
     data class DiscListNode(override val itemNode: List<ListItemNode>) : ListNode(itemNode) {
         @JsName("with")
         constructor(vararg nodes: ListItemNode) : this(nodes.toList())
+
+        override val char: String
+            get() = "-"
     }
 
     data class ListItemNode(val nodes: MutableList<ListableNode>) : BlockNode() {
