@@ -9,7 +9,7 @@ plugins {
     alias(libs.plugins.vanniktech.mavenPublish)
 }
 
-group = "io.github.kotlin"
+group = "dev.usbharu"
 version = "1.0.0"
 
 kotlin {
@@ -49,7 +49,7 @@ kotlin {
 }
 
 android {
-    namespace = "org.jetbrains.kotlinx.multiplatform.library.template"
+    namespace = "dev.usbharu.markdown"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()
@@ -61,11 +61,11 @@ mavenPublishing {
 
     signAllPublications()
 
-    coordinates(group.toString(), "library", version.toString())
+    coordinates(group.toString(), "markdown-kt", version.toString())
 
     pom {
-        name = "My library"
-        description = "A library."
+        name = "markdown-kt"
+        description = "Kotlin Multiplatform markdown parser"
         inceptionYear = "2024"
         url = "https://github.com/kotlin/multiplatform-library-template/"
         licenses {
