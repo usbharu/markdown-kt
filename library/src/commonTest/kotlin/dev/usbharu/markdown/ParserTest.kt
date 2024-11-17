@@ -534,4 +534,91 @@ class ParserTest {
         )
 
     }
+
+    @Test
+    fun list() {
+        val parser = Parser()
+
+        val actual = parser.parse(
+            listOf(DiscList, Text("aiueo"), Whitespace(1, ' '), Text("aa"), LineBreak(1), DiscList, Text("abcd"))
+        )
+
+        println(actual)
+        println(actual.print())
+
+        assertEquals(
+            RootNode(
+                BodyNode(
+                    listOf(
+                        DiscListNode(
+                            listOf(
+                                ListItemNode(
+                                    mutableListOf(
+                                        PlainText("aiueo"),
+                                        PlainText(" "),
+                                        PlainText("aa")
+                                    )
+                                ),
+                                ListItemNode(
+                                    mutableListOf(
+                                        PlainText("abcd")
+                                    )
+                                )
+                            )
+
+                        )
+                    )
+                )
+            ), actual
+        )
+    }
+
+    @Test
+    fun listネスト() {
+        val parser = Parser()
+
+        val actual = parser.parse(
+            listOf(
+                DiscList,
+                Text("aiueo"),
+                LineBreak(1),
+                Whitespace(4, ' '),
+                DiscList,
+                Text("abcd"),
+                LineBreak(1),
+                Whitespace(4, ' '),
+                DiscList,
+                Text("efgh"),
+                LineBreak(1),
+                DiscList,
+                Text("hoge")
+            )
+        )
+
+        println(actual)
+        println(actual.print())
+
+        assertEquals(
+            RootNode(
+                BodyNode(
+                    DiscListNode(
+                        ListItemNode(
+                            PlainText("aiueo"),
+                            DiscListNode(
+                                ListItemNode(
+                                    PlainText("abcd"),
+                                ),
+                                ListItemNode(
+                                    PlainText("efgh"),
+                                )
+                            )
+                        ),
+                        ListItemNode(
+                            PlainText("hoge")
+                        )
+                    )
+                )
+            ), actual
+        )
+    }
 }

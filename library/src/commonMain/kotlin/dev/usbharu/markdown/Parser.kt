@@ -2,6 +2,8 @@ package dev.usbharu.markdown
 
 import dev.usbharu.markdown.AstNode.*
 import dev.usbharu.markdown.Token.*
+import dev.usbharu.markdown.Token.List.ListType.DECIMAL
+import dev.usbharu.markdown.Token.List.ListType.DISC
 import kotlin.collections.List
 import kotlin.js.JsExport
 
@@ -27,16 +29,65 @@ class Parser {
                 is CodeBlockLanguage -> TODO()
                 is Header -> header(next, iterator)
                 is Html -> TODO()
-                is Token.List -> TODO()
+                is Token.List -> list(next, iterator)
                 is Quote -> quote(next, iterator)
                 is Separator -> separator(next, iterator)
-                InQuoteBreak -> TODO()
+                InQuoteBreak -> null
             }
             if (node != null) {
                 nodes.add(node)
             }
         }
         return RootNode(BodyNode(nodes))
+    }
+
+    fun list(list: Token.List, iterator: PeekableTokenIterator): ListNode {
+        return internalList(list, iterator, 1)
+    }
+
+    fun internalList(list: Token.List, iterator: PeekableTokenIterator, currentNest: Int): ListNode {
+        val listItems = mutableListOf<ListItemNode>()
+        list@ while (iterator.hasNext() && (iterator.peekOrNull() is Token.List || isInline(iterator.peekOrNull()))) {
+            val item = mutableListOf<ListableNode>()
+            listItem@ while (isInline(iterator.peekOrNull()) && iterator.peekOrNull() !is Token.List && iterator.peekOrNull() !is LineBreak) {
+                val next = iterator.next()
+                val inline = inline(next, iterator)
+                println("internalList inline: " + inline)
+                item.addAll(inline)
+            }
+            while (iterator.peekOrNull() is LineBreak) {
+                iterator.skip()
+            }
+            val count =
+                if (iterator.peekOrNull() is Whitespace) {
+                    val whitespace = iterator.next() as Whitespace
+                    whitespace.count
+                } else {
+                    1
+                }
+            println("count = $count,currentNest = $currentNest,peek = ${iterator.peekOrNull()}")
+            if (currentNest < count && iterator.peekOrNull() is Token.List) {
+                item.add(internalList(iterator.next() as Token.List, iterator, count))
+            }
+            if (currentNest > count && iterator.peekOrNull() is Token.List) {
+                iterator.skip()
+                if (item.isNotEmpty()) {
+                    listItems.add(ListItemNode(item))
+                }
+                break
+            }
+            while (iterator.peekOrNull() is Token.List) {
+                iterator.skip()
+            }
+            if (item.isNotEmpty()) {
+                listItems.add(ListItemNode(item))
+            }
+        }
+        println("end $currentNest")
+        return when (list.type) {
+            DISC -> DiscListNode(listItems)
+            DECIMAL -> DecimalListNode(listItems)
+        }
     }
 
     tailrec fun addQuote(quoteNode: QuoteNode, quotableNode: List<QuotableNode>, nest: Int) {
