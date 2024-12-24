@@ -17,8 +17,8 @@ class Parser {
         while (iterator.hasNext()) {
             val node = when (val next = iterator.next()) {
                 is Asterisk, is InlineCodeBlock, is Strike,
-                is Text, is Whitespace, Exclamation, ParenthesesEnd, ParenthesesStart,
-                SquareBracketStart, SquareBracketEnd, is Url, is UrlTitle, is LineBreak -> paragraph(
+                is Text, is Whitespace, is Exclamation, is ParenthesesEnd, is ParenthesesStart,
+                is SquareBracketStart, is SquareBracketEnd, is Url, is UrlTitle, is LineBreak -> paragraph(
                     next,
                     iterator
                 )
@@ -32,7 +32,7 @@ class Parser {
                 is Token.List -> list(next, iterator)
                 is Quote -> quote(next, iterator)
                 is Separator -> separator(next, iterator)
-                InQuoteBreak -> null
+                is InQuoteBreak -> null
             }
             if (node != null) {
                 nodes.add(node)
@@ -173,8 +173,8 @@ class Parser {
     fun isInline(token: Token?): Boolean {
         return when (token) {
             is Asterisk, is InlineCodeBlock, is Strike,
-            is Text, is Whitespace, Exclamation, ParenthesesEnd, ParenthesesStart,
-            SquareBracketStart, SquareBracketEnd, is Url, is UrlTitle, is LineBreak, is InQuoteBreak -> true
+            is Text, is Whitespace, is Exclamation, is ParenthesesEnd, is ParenthesesStart,
+            is SquareBracketStart, is SquareBracketEnd, is Url, is UrlTitle, is LineBreak, is InQuoteBreak -> true
 
             else -> false
         }
@@ -185,12 +185,12 @@ class Parser {
         iterator.print()
         val node = when (token) {
             is Asterisk -> asterisk(token, iterator)
-            Exclamation -> image(Exclamation, iterator)
+            is Exclamation -> image(token, iterator)
             is InlineCodeBlock -> inlineCodeBlock(token, iterator)
-            ParenthesesEnd -> PlainText(")")
-            ParenthesesStart -> PlainText("(")
-            SquareBracketEnd -> PlainText("]")
-            SquareBracketStart -> url(SquareBracketStart, iterator)
+            is ParenthesesEnd -> PlainText(")")
+            is ParenthesesStart -> PlainText("(")
+            is SquareBracketEnd -> PlainText("]")
+            is SquareBracketStart -> url(token, iterator)
             is Strike -> TODO()
             is Text -> plainText(token, iterator)
             is Url -> inlineUrl(token, iterator)

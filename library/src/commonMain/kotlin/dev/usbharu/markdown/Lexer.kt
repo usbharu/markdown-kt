@@ -22,61 +22,82 @@ class Lexer {
                 blankLine(lines, tokens)
             } else {
                 val line = lines.next()
-                val iterator = PeekableCharIterator(line.toCharArray())
-                char@ while (iterator.hasNext()) {
-                    val next = iterator.next().toString()
+                val lineAt = lines.current() - 1
+                val codePoints = PeekableCharIterator(line.toCharArray())
+                char@ while (codePoints.hasNext()) {
+                    val next = codePoints.next().toString()
+                    val codePointAt = codePoints.current() - 1
                     when {
                         next == "`" || next == "｀" -> {
-                            inCode = codeblock(iterator, next[0], tokens, inCode, codeBuffer, inline)
+                            inCode = codeblock(codePoints, next[0], tokens, inCode, codeBuffer, inline, lineAt)
                         }
 
                         inCode -> codeBuffer.append(next)
 
-                        next == "<" -> htmlNest = html(iterator, htmlNest, codeBuffer, tokens, next[0])
+                        next == "<" -> htmlNest = html(codePoints, htmlNest, codeBuffer, tokens, next[0], lineAt)
 
                         htmlNest != 0 -> codeBuffer.append(next)
 
-                        (next == "#" || next == "＃") && !inline -> header(iterator, tokens)
+                        (next == "#" || next == "＃") && !inline -> header(codePoints, tokens, lineAt)
                         (next == ">" || next == "＞") && !inQuote && !inline -> {
                             inQuote = true
-                            quote(iterator, tokens)
+                            quote(codePoints, tokens, lineAt)
                         }
 
                         (next == "-" || next == "=" || next == "ー" || next == "＝") && !inline -> {
-                            if (iterator.peekOrNull()?.isWhitespace() == true) { //-の直後がスペースならリストの可能性
-                                list(iterator, tokens)
+                            if (codePoints.peekOrNull()?.isWhitespace() == true) { //-の直後がスペースならリストの可能性
+                                list(codePoints, tokens, lineAt)
                             } else {//それ以外ならセパレーターの可能性
-                                separator(next[0], iterator, tokens)
+                                separator(next[0], codePoints, tokens, lineAt)
                             }
                         }
 
                         (next in "0".."9" || next in "０".."９") && !inline ->
-                            decimalList(iterator, tokens, next[0])
+                            decimalList(codePoints, tokens, next[0], lineAt)
 
-                        next == "[" || next == "「" -> tokens.add(SquareBracketStart)
-                        next == "]" || next == "」" -> tokens.add(SquareBracketEnd)
-                        next == "（" || next == "(" -> tokens.add(ParenthesesStart)
-                        next == ")" || next == "）" -> tokens.add(ParenthesesEnd)
+                        next == "[" || next == "「" -> tokens.add(
+                            SquareBracketStart(
+                                lineAt,
+                                codePointAt
+                            )
+                        )
+
+                        next == "]" || next == "」" -> tokens.add(
+                            SquareBracketEnd(
+                                lineAt,
+                                codePointAt
+                            )
+                        )
+
+                        next == "（" || next == "(" -> tokens.add(
+                            ParenthesesStart(
+                                lineAt,
+                                codePointAt
+                            )
+                        )
+
+                        next == ")" || next == "）" -> tokens.add(ParenthesesEnd(lineAt, codePointAt))
                         next.isBlank() -> tokens.add(
                             Whitespace(
-                                skipWhitespace(iterator) + 1,
-                                next[0]
+                                skipWhitespace(codePoints) + 1,
+                                next[0], lineAt, codePointAt
                             )
                         ) //nextの分1足す
-                        next == "h" -> url(next[0], iterator, tokens)
-                        next == "*" || next == "_" -> asterisk(iterator, next[0], tokens)
+
+                        next == "h" -> url(next[0], codePoints, tokens, lineAt)
+                        next == "*" || next == "_" -> asterisk(codePoints, next[0], tokens, lineAt)
 
                         next == "!" -> {
-                            if (iterator.peekOrNull() == '[') {
-                                tokens.add(Exclamation)
+                            if (codePoints.peekOrNull() == '[') {
+                                tokens.add(Exclamation(lineAt, codePointAt))
                             } else {
-                                addText(tokens, "!")
+                                addText(tokens, "!", lineAt, codePointAt)
                             }
                         }
 
-                        next == "~" || next == "～" -> strike(iterator, next[0], tokens)
+                        next == "~" || next == "～" -> strike(codePoints, next[0], tokens, lineAt)
 
-                        else -> addText(tokens, next)
+                        else -> addText(tokens, next, lineAt, codePointAt)
                     }
                     if (!inline && tokens.lastOrNull() !is Whitespace) { //行頭が空白の場合は一旦無視する
                         inline = true
@@ -89,7 +110,7 @@ class Lexer {
                 } else if (htmlNest != 0) {
                     codeBuffer.append(" ")
                 } else {
-                    addBreak(tokens, inQuote)
+                    addBreak(tokens, lineAt, codePointAt = codePoints.current(), inQuote)
                 }
             }
             inQuote = false
@@ -105,7 +126,7 @@ class Lexer {
         }
         if (lastToken is BlockBreak) {
             tokens.removeLast()
-            tokens.add(LineBreak(1))
+            tokens.add(LineBreak(1, lastToken.lineAt, 0))
         }
         if (lastToken is InQuoteBreak) {
             tokens.removeLast()
@@ -118,7 +139,8 @@ class Lexer {
         htmlNest: Int,
         codeBuffer: StringBuilder,
         tokens: MutableList<Token>,
-        next: Char
+        next: Char,
+        lineAt: Int,
     ): Int {
         var htmlNest1 = htmlNest
         var endTag = false
@@ -152,7 +174,7 @@ class Lexer {
                 attrBuilder.append(iterator.peekOrNull(counter))
                 counter++
             }
-            attributeList.add(AttributeName(attrBuilder.toString()))
+            attributeList.add(AttributeName(attrBuilder.toString(), lineAt, iterator.current() + counter))
             counter = skipPeekWhitespace(iterator, counter)
             if (iterator.peekOrNull(counter) == '=') {
                 counter++
@@ -162,7 +184,7 @@ class Lexer {
                     val peekString = offsetPeekString(iterator, counter, '"')
                     counter = peekString?.second?.minus(1) ?: counter
                     if (peekString != null) {
-                        attributeList.add(AttributeValue(peekString.first))
+                        attributeList.add(AttributeValue(peekString.first, lineAt, iterator.current() + counter))
                     } else {
                         break@intag
                     }
@@ -183,21 +205,21 @@ class Lexer {
         }
         if (iterator.peekOrNull(counter) == '>') { //タグか判定
             if (codeBuffer.isNotBlank()) { //タグ間に文字があれば追加する
-                tokens.add(HtmlValue(codeBuffer.toString().trim()))
+                tokens.add(HtmlValue(codeBuffer.toString().trim(), lineAt, iterator.current() + counter))
                 codeBuffer.clear()
             }
             if (endTag) {//閉じタグ判定
                 htmlNest1-- //閉じタグならネストを一つ減らす
-                tokens.add(EndTagStart(tagNameBuilder.toString()))
+                tokens.add(EndTagStart(tagNameBuilder.toString(), lineAt, iterator.current() + counter))
             } else {
                 htmlNest1++
-                tokens.add(StartTagStart(tagNameBuilder.toString(), void))
+                tokens.add(StartTagStart(tagNameBuilder.toString(), void, lineAt, iterator.current() + counter))
             }
             tokens.addAll(attributeList)
-            tokens.add(TagEnd(tagNameBuilder.toString()))
+            tokens.add(TagEnd(tagNameBuilder.toString(), lineAt, iterator.current() + counter))
             iterator.skip(counter + 1)
         } else {
-            addText(tokens, next.toString())
+            addText(tokens, next.toString(), lineAt, iterator.current())
         }
         return htmlNest1
     }
@@ -206,27 +228,29 @@ class Lexer {
         iterator: PeekableCharIterator,
         next: Char,
         tokens: MutableList<Token>,
+        lineAt: Int
     ) {
         if (iterator.peekOrNull() == next) {
-            iterator.next()
+            iterator.skip()
             val peekString = peekString(iterator, next, next)
             if (peekString == null) {
-                addText(tokens, "$next$next")
+                addText(tokens, "$next$next", lineAt, iterator.current())
+                iterator.skip(2)
             } else {
-                tokens.add(Strike(peekString))
+                tokens.add(Strike(peekString, lineAt, iterator.current()))
                 iterator.skip(peekString.length + 2)
             }
         } else {
-            addText(tokens, next.toString())
+            addText(tokens, next.toString(), lineAt, iterator.current())
         }
     }
 
-    private fun addText(tokens: MutableList<Token>, next: String) {
+    private fun addText(tokens: MutableList<Token>, next: String, lineAt: Int, codePointAt: Int) {
         val lastToken = tokens.lastOrNull()
         if (lastToken is Text) {
             lastToken.text += next
         } else {
-            tokens.add(Text(next))
+            tokens.add(Text(next, lineAt, codePointAt))
         }
     }
 
@@ -237,6 +261,7 @@ class Lexer {
         inCode: Boolean,
         codeBuffer: StringBuilder,
         inline: Boolean,
+        lineAt: Int
     ): Boolean {
         var inCode1 = inCode
         if (iterator.peekOrNull() == next && !inline) { //行頭かつ次の文字が`
@@ -246,17 +271,24 @@ class Lexer {
             if (iterator.peekOrNull() == next) {
                 codeBlockBuilder.append(iterator.next())
                 if (iterator.peekOrNull() == next) {
-                    tokens.add(Text(codeBlockBuilder.toString()))
+                    tokens.add(Text(codeBlockBuilder.toString(), lineAt, iterator.current() - 2))
                 } else {
                     if (inCode1) {
                         inCode1 = false
-                        tokens.add(CodeBlock(codeBuffer.toString().trimStart('\n').trimEnd('\n')))
+                        tokens.add(
+                            CodeBlock(
+                                codeBuffer.toString().trimStart('\n').trimEnd('\n'),
+                                lineAt,
+                                iterator.current() - 2
+                            )
+                        )
                         codeBuffer.clear()
                     } else {
                         inCode1 = true
                         var inFilename = false
                         val language = StringBuilder()
                         val filename = StringBuilder()
+                        val codePointAt = iterator.current()
                         if (iterator.hasNext()) {
                             codeBlock@ while (iterator.hasNext()) {
                                 val nextLanguage = iterator.next()
@@ -271,26 +303,26 @@ class Lexer {
                                 }
 
                             }
-                            tokens.add(CodeBlockLanguage(language.toString(), filename.toString()))
+                            tokens.add(CodeBlockLanguage(language.toString(), filename.toString(), lineAt, codePointAt))
                         }
 
                     }
                 }
 
             } else if (iterator.peekOrNull() == null) {
-                tokens.add(Text(codeBlockBuilder.toString()))
+                tokens.add(Text(codeBlockBuilder.toString(), lineAt, iterator.current()))
             }
 
         } else {
             val peekString = peekString(iterator, next)
             if (peekString != null && peekString.isEmpty()) {
-                addText(tokens, "$next$next")
+                addText(tokens, "$next$next", lineAt, iterator.current())
                 iterator.next()
             } else if (peekString != null) {
-                tokens.add(InlineCodeBlock(peekString))
+                tokens.add(InlineCodeBlock(peekString, lineAt, iterator.current()))
                 iterator.skip(peekString.length + 1)
             } else {
-                addText(tokens, next.toString())
+                addText(tokens, next.toString(), lineAt, iterator.current())
             }
         }
         return inCode1
@@ -300,20 +332,24 @@ class Lexer {
         iterator: PeekableCharIterator,
         next: Char,
         tokens: MutableList<Token>,
+        lineAt: Int
     ) {
+        val codePointAt = iterator.current() - 1
         var count = 1
         while (iterator.peekOrNull() == next) {
             count++
             iterator.next()
         }
-        tokens.add(Asterisk(count, next))
+        tokens.add(Asterisk(count, next, lineAt, codePointAt))
     }
 
     private fun url(
         next: Char,
         iterator: PeekableCharIterator,
         tokens: MutableList<Token>,
+        lineAt: Int
     ) {
+        val codePointAt = iterator.current() - 1
         //todo httpにも対応
         val charIterator = PeekableCharIterator("ttps://".toCharArray())
         val urlBuilder = StringBuilder()
@@ -322,7 +358,7 @@ class Lexer {
             val nextC = charIterator.peekOrNull() ?: return
             val nextC2 = iterator.peekOrNull() ?: return
             if (nextC != nextC2) {
-                addText(tokens, urlBuilder.toString())
+                addText(tokens, urlBuilder.toString(), lineAt, codePointAt)
                 return
             }
             urlBuilder.append(nextC2)
@@ -330,14 +366,14 @@ class Lexer {
             iterator.next()
         }
         if (urlBuilder.length == 1) {
-            addText(tokens, urlBuilder.toString()) //hだけのときはURLじゃないのでテキストとして追加
+            addText(tokens, urlBuilder.toString(), lineAt, codePointAt) //hだけのときはURLじゃないのでテキストとして追加
         } else {
             while (iterator.hasNext() && (iterator.peekOrNull()
                     ?.isWhitespace() != true && iterator.peekOrNull() != ')')
             ) {
                 urlBuilder.append(iterator.next())
             }
-            tokens.add(Url(urlBuilder.toString()))
+            tokens.add(Url(urlBuilder.toString(), lineAt, codePointAt))
             skipWhitespace(iterator)
             val doubleQuotation = iterator.peekOrNull()
             if (iterator.peekOrNull() == '"' || doubleQuotation == '”') {
@@ -350,7 +386,7 @@ class Lexer {
                 if (iterator.peekOrNull() == doubleQuotation) {
                     iterator.next()
                 }
-                tokens.add(UrlTitle(titleBuilder.toString()))
+                tokens.add(UrlTitle(titleBuilder.toString(), lineAt, codePointAt))
             }
         }
     }
@@ -359,39 +395,43 @@ class Lexer {
         iterator: PeekableCharIterator,
         tokens: MutableList<Token>,
         next: Char,
+        lineAt: Int
     ) {
         val comma = iterator.peekOrNull()
+        val codePointAt = iterator.current() - 1
         if (comma == null) {
-            addText(tokens, next.toString())
+            addText(tokens, next.toString(), lineAt, codePointAt)
             return
         }
         if (comma == '.' || comma == '。' || comma == '、') {
             iterator.next()
             if (iterator.peekOrNull()?.isWhitespace() == true) {
                 iterator.next()
-                tokens.add(DecimalList(next))
+                tokens.add(DecimalList(next, lineAt, codePointAt))
                 return
             }
         }
-        addText(tokens, next + "" + comma)
+        addText(tokens, next + "" + comma, lineAt, codePointAt)
     }
 
     private fun list(
         iterator: PeekableCharIterator,
         tokens: MutableList<Token>,
+        lineAt: Int
     ) {
 
         if (iterator.peekOrNull()?.isWhitespace() == true) {
-            tokens.add(DiscList)
+            tokens.add(DiscList(lineAt, iterator.current() - 1))
         }
 
-        skipWhitespace(iterator)
+        val skipWhitespace = skipWhitespace(iterator)
+        val codePointAt = iterator.current() + skipWhitespace - 1
         if (iterator.peekOrNull() == '[') {
             iterator.next()
             val checkedChar = iterator.peekOrNull() ?: return
             iterator.next()
             if ((checkedChar == 'x' || checkedChar == ' ' || checkedChar == '　').not()) {
-                addText(tokens, "[$checkedChar")
+                addText(tokens, "[$checkedChar", lineAt, codePointAt)
                 return
             }
             val checked = checkedChar == 'x'
@@ -399,11 +439,11 @@ class Lexer {
                 iterator.next()
                 if (iterator.peekOrNull()?.isWhitespace() == true) {
                     iterator.next()
-                    tokens.add(CheckBox(checked))
+                    tokens.add(CheckBox(checked, lineAt, codePointAt))
                     return
                 }
             }
-            addText(tokens, "[$checkedChar")
+            addText(tokens, "[$checkedChar", lineAt, codePointAt)
         }
     }
 
@@ -411,45 +451,51 @@ class Lexer {
         next: Char,
         iterator: PeekableCharIterator,
         tokens: MutableList<Token>,
+        lineAt: Int
     ) {
         val builder = StringBuilder()
         builder.append(next)
+
+        val codePointAt = iterator.current() - 1
 
         while (iterator.peekOrNull() == next) {
             builder.append(iterator.next())
         }
         if (iterator.peekOrNull() == null && builder.length >= 3) { //行末まで到達していてかつ長さが3以上か
-            tokens.add(Separator(builder.length, next)) //セパレーターとして追加
+            tokens.add(Separator(builder.length, next, lineAt, codePointAt)) //セパレーターとして追加
         } else {
-            addText(tokens, builder.toString())
+            addText(tokens, builder.toString(), lineAt, codePointAt)
         }
     }
 
     private fun quote(
         iterator: PeekableCharIterator,
         tokens: MutableList<Token>,
+        lines: Int
     ) {
         var count = 1
         while (iterator.peekOrNull()?.isWhitespace() == false) {
             iterator.next()
             count++
         }
-        tokens.add(Quote(count))
+        tokens.add(Quote(count, lines, iterator.current() - count))
         skipWhitespace(iterator)
     }
 
     private fun header(
         iterator: PeekableCharIterator,
         tokens: MutableList<Token>,
+        lineAt: Int
     ) {
         var count = 1
         while (iterator.peekOrNull()?.isWhitespace() == false) {
             iterator.next()
             count++
         }
-        tokens.add(Header(count))
+        tokens.add(Header(count, lineAt, iterator.current() - count))
         skipWhitespace(iterator)
-        tokens.add(Text(collect(iterator)))
+        val codePointAt = iterator.current()
+        tokens.add(Text(collect(iterator), lineAt, codePointAt))
     }
 
     fun skipWhitespace(iterator: PeekableCharIterator): Int {
@@ -526,21 +572,21 @@ class Lexer {
     ) {
         while (lines.peekOrNull() == "") {
             lines.skip()
-            addBreak(tokens)
+            addBreak(tokens, lines.current() - 1)
         }
     }
 
-    fun addBreak(tokens: MutableList<Token>, inQuote: Boolean = false) {
+    fun addBreak(tokens: MutableList<Token>, lineAt: Int, codePointAt: Int = 0, inQuote: Boolean = false) {
         if (inQuote) {
-            tokens.add(InQuoteBreak)
+            tokens.add(InQuoteBreak(lineAt, codePointAt))
             return
         }
         val lastOrNull = tokens.lastOrNull()
         if (lastOrNull is LineBreak && 1 <= lastOrNull.count) {
             tokens.removeLast()
-            tokens.add(BlockBreak)
+            tokens.add(BlockBreak(lastOrNull.lineAt, lastOrNull.codePointAt))
         } else {
-            tokens.add(LineBreak(1))
+            tokens.add(LineBreak(1, lineAt, codePointAt))
         }
     }
 }
