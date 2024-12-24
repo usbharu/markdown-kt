@@ -24,49 +24,49 @@ class Lexer {
                 val line = lines.next()
                 val iterator = PeekableCharIterator(line.toCharArray())
                 char@ while (iterator.hasNext()) {
-                    val next = iterator.next()
+                    val next = iterator.next().toString()
                     when {
-                        next == '`' || next == '｀' -> {
-                            inCode = codeblock(iterator, next, tokens, inCode, codeBuffer, inline)
+                        next == "`" || next == "｀" -> {
+                            inCode = codeblock(iterator, next[0], tokens, inCode, codeBuffer, inline)
                         }
 
                         inCode -> codeBuffer.append(next)
 
-                        next == '<' -> htmlNest = html(iterator, htmlNest, codeBuffer, tokens, next)
+                        next == "<" -> htmlNest = html(iterator, htmlNest, codeBuffer, tokens, next[0])
 
                         htmlNest != 0 -> codeBuffer.append(next)
 
-                        (next == '#' || next == '＃') && !inline -> header(iterator, tokens)
-                        (next == '>' || next == '＞') && !inQuote && !inline -> {
+                        (next == "#" || next == "＃") && !inline -> header(iterator, tokens)
+                        (next == ">" || next == "＞") && !inQuote && !inline -> {
                             inQuote = true
                             quote(iterator, tokens)
                         }
 
-                        (next == '-' || next == '=' || next == 'ー' || next == '＝') && !inline -> {
+                        (next == "-" || next == "=" || next == "ー" || next == "＝") && !inline -> {
                             if (iterator.peekOrNull()?.isWhitespace() == true) { //-の直後がスペースならリストの可能性
                                 list(iterator, tokens)
                             } else {//それ以外ならセパレーターの可能性
-                                separator(next, iterator, tokens)
+                                separator(next[0], iterator, tokens)
                             }
                         }
 
-                        (next in '0'..'9' || next in '０'..'９') && !inline ->
-                            decimalList(iterator, tokens, next)
+                        (next in "0".."9" || next in "０".."９") && !inline ->
+                            decimalList(iterator, tokens, next[0])
 
-                        next == '[' || next == '「' -> tokens.add(SquareBracketStart)
-                        next == ']' || next == '」' -> tokens.add(SquareBracketEnd)
-                        next == '（' || next == '(' -> tokens.add(ParenthesesStart)
-                        next == ')' || next == '）' -> tokens.add(ParenthesesEnd)
-                        next.isWhitespace() -> tokens.add(
+                        next == "[" || next == "「" -> tokens.add(SquareBracketStart)
+                        next == "]" || next == "」" -> tokens.add(SquareBracketEnd)
+                        next == "（" || next == "(" -> tokens.add(ParenthesesStart)
+                        next == ")" || next == "）" -> tokens.add(ParenthesesEnd)
+                        next.isBlank() -> tokens.add(
                             Whitespace(
                                 skipWhitespace(iterator) + 1,
-                                next
+                                next[0]
                             )
                         ) //nextの分1足す
-                        next == 'h' -> url(next, iterator, tokens)
-                        next == '*' || next == '_' -> asterisk(iterator, next, tokens)
+                        next == "h" -> url(next[0], iterator, tokens)
+                        next == "*" || next == "_" -> asterisk(iterator, next[0], tokens)
 
-                        next == '!' -> {
+                        next == "!" -> {
                             if (iterator.peekOrNull() == '[') {
                                 tokens.add(Exclamation)
                             } else {
@@ -74,9 +74,9 @@ class Lexer {
                             }
                         }
 
-                        next == '~' || next == '～' -> strike(iterator, next, tokens)
+                        next == "~" || next == "～" -> strike(iterator, next[0], tokens)
 
-                        else -> addText(tokens, next.toString())
+                        else -> addText(tokens, next)
                     }
                     if (!inline && tokens.lastOrNull() !is Whitespace) { //行頭が空白の場合は一旦無視する
                         inline = true
