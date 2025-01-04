@@ -711,47 +711,47 @@ class LexerTest {
         )
     }
 
-    //    @Test
-//    fun url3() {
-//        val lexer = Lexer()
-//
-//        val actual = lexer.lex("[alt](https://example.com)")
-//
-//        println(actual)
-//
-//        assertContentEquals(
-//            listOf(
-//                SquareBracketStart,
-//                Text("alt"),
-//                SquareBracketEnd,
-//                ParenthesesStart,
-//                Url("https://example.com"),
-//                ParenthesesEnd
-//            ), actual
-//        )
-//    }
-//
-//    @Test
-//    fun urlとタイトル() {
-//        val lexer = Lexer()
-//
-//        val actual = lexer.lex("[alt](https://example.com \"example\")")
-//
-//        println(actual)
-//
-//        assertContentEquals(
-//            listOf(
-//                SquareBracketStart,
-//                Text("alt"),
-//                SquareBracketEnd,
-//                ParenthesesStart,
-//                Url("https://example.com"),
-//                UrlTitle("example"),
-//                ParenthesesEnd
-//            ), actual
-//        )
-//    }
-//
+    @Test
+    fun url3() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("[alt](https://example.com)")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                SquareBracketStart(0, 0),
+                Text("alt", 0, 1),
+                SquareBracketEnd(0, 4),
+                ParenthesesStart(0, 5),
+                Url("https://example.com", 0, 6),
+                ParenthesesEnd(0, 25)
+            ), actual
+        )
+    }
+
+    @Test
+    fun urlとタイトル() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("[alt](https://example.com \"example\")")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                SquareBracketStart(0, 0),
+                Text("alt", 0, 1),
+                SquareBracketEnd(0, 4),
+                ParenthesesStart(0, 5),
+                Url("https://example.com", 0, 6),
+                UrlTitle("example", 0, 27),
+                ParenthesesEnd(0, 35)
+            ), actual
+        )
+    }
+
 //    @Test
 //    fun urlとタイトル全角() {
 //        val lexer = Lexer()
@@ -1034,290 +1034,294 @@ class LexerTest {
 //            ), actual
 //        )
 //    }
-//
-//    @Test
-//    fun html() {
-//        val lexer = Lexer()
-//
-//        val actual = lexer.lex("<tagName attr=\"value\">")
-//
-//        println(actual)
-//
-//        assertContentEquals(
-//            listOf(
-//                StartTagStart("tagName", false), AttributeName("attr"), AttributeValue("value"), TagEnd("tagName")
-//            ), actual
-//        )
-//    }
-//
-//    @Test
-//    fun html2() {
-//        val lexer = Lexer()
-//
-//        val actual = lexer.lex("<tagName>")
-//
-//        println(actual)
-//
-//        assertContentEquals(
-//            listOf(
-//                StartTagStart("tagName", false), TagEnd("tagName")
-//            ), actual
-//        )
-//    }
-//
-//    @Test
-//    fun html閉じタグ() {
-//        val lexer = Lexer()
-//
-//        val actual = lexer.lex("<tagName attr=\"value\"></tagName>")
-//
-//        println(actual)
-//
-//        assertContentEquals(
-//            listOf(
-//                StartTagStart("tagName", false),
-//                AttributeName("attr"),
-//                AttributeValue("value"),
-//                TagEnd("tagName"),
-//                EndTagStart("tagName"),
-//                TagEnd("tagName")
-//            ), actual
-//        )
-//    }
-//
-//    @Test
-//    fun html内容() {
-//        val lexer = Lexer()
-//
-//        val actual = lexer.lex("<tagName attr=\"value\">hello</tagName>")
-//
-//        println(actual)
-//
-//        assertContentEquals(
-//            listOf(
-//                StartTagStart("tagName", false),
-//                AttributeName("attr"),
-//                AttributeValue("value"),
-//                TagEnd("tagName"),
-//                HtmlValue("hello"),
-//                EndTagStart("tagName"),
-//                TagEnd("tagName")
-//            ), actual
-//        )
-//    }
-//
-//    @Test
-//    fun htmlネスト() {
-//        val lexer = Lexer()
-//
-//        val actual = lexer.lex("<tagName attr=\"value\"><tagB>hello</tagB></tagName>")
-//
-//        println(actual)
-//
-//        assertContentEquals(
-//            listOf(
-//                StartTagStart("tagName", false),
-//                AttributeName("attr"),
-//                AttributeValue("value"),
-//                TagEnd("tagName"),
-//                StartTagStart("tagB", false),
-//                TagEnd("tagB"),
-//                HtmlValue("hello"),
-//                EndTagStart("tagB"),
-//                TagEnd("tagB"),
-//                EndTagStart("tagName"),
-//                TagEnd("tagName")
-//            ), actual
-//        )
-//    }
-//
-//    @Test
-//    fun htmlかと思ったら違った() {
-//        val lexer = Lexer()
-//
-//        val actual = lexer.lex("<tagName attr=\"value\"")
-//
-//        println(actual)
-//
-//        assertContentEquals(
-//            listOf(
-//                Text("<tagName"), Whitespace(1, ' '), Text("attr=\"value\"")
-//            ), actual
-//        )
-//    }
-//
-//    @Test
-//    fun htmlのアトリビュートかと思ったら違った() {
-//        val lexer = Lexer()
-//
-//        val actual = lexer.lex("<tagName attr=\"value>")
-//
-//        println(actual)
-//
-//        assertContentEquals(
-//            listOf(
-//                Text("<tagName"), Whitespace(1, ' '), Text("attr=\"value>")
-//            ), actual
-//        )
-//    }
-//
-//    @Test
-//    fun html複数行() {
-//        val lexer = Lexer()
-//
-//        val actual = lexer.lex("<tagName attr=\"value\">\nvalue\n</tagName>")
-//
-//        println(actual)
-//
-//        assertContentEquals(
-//            listOf(
-//                StartTagStart("tagName", false),
-//                AttributeName("attr"),
-//                AttributeValue("value"),
-//                TagEnd("tagName"),
-//                HtmlValue("value"),
-//                EndTagStart("tagName"),
-//                TagEnd("tagName")
-//            ), actual
-//        )
-//    }
-//
-//    @Test
-//    fun html改行() {
-//        val lexer = Lexer()
-//
-//        val actual = lexer.lex("<tagName attr=\"value\">\nvalue\nfaaaa</tagName>")
-//
-//        println(actual)
-//
-//        assertContentEquals(
-//            listOf(
-//                StartTagStart("tagName", false),
-//                AttributeName("attr"),
-//                AttributeValue("value"),
-//                TagEnd("tagName"),
-//                HtmlValue("value faaaa"),
-//                EndTagStart("tagName"),
-//                TagEnd("tagName")
-//            ), actual
-//        )
-//    }
-//
-//    @Test
-//    fun htmlアトリビュートいっぱい() {
-//        val lexer = Lexer()
-//
-//        val actual = lexer.lex("<tagName attr=\"value\" attr2=\"aaaaaaa\">")
-//
-//        println(actual)
-//
-//        assertContentEquals(
-//            listOf(
-//                StartTagStart("tagName", false),
-//                AttributeName("attr"),
-//                AttributeValue("value"),
-//                AttributeName("attr2"),
-//                AttributeValue("aaaaaaa"),
-//                TagEnd("tagName")
-//            ), actual
-//        )
-//    }
-//
-//    @Test
-//    fun `html騙し続ける`() {
-//        val lexer = Lexer()
-//
-//        val actual = lexer.lex("<<<<<<")
-//
-//        println(actual)
-//
-//        assertContentEquals(
-//            listOf(
-//                Text("<<<<<<")
-//            ), actual
-//        )
-//    }
-//
-//    @Test
-//    fun html閉じタグ省略() {
-//        val lexer = Lexer()
-//
-//        val actual = lexer.lex("<tagName/>")
-//
-//        println(actual)
-//
-//        assertContentEquals(
-//            listOf(
-//                StartTagStart("tagName", true),
-//                TagEnd("tagName"),
-//
-//                ), actual
-//        )
-//    }
-//
-//    @Test
-//    fun html閉じタグ省略ネスト() {
-//        val lexer = Lexer()
-//
-//        val actual = lexer.lex("<b><a/></b>")
-//
-//        println(actual)
-//
-//        assertContentEquals(
-//            listOf(
-//                StartTagStart("b", false),
-//                TagEnd("b"),
-//                StartTagStart("a", true),
-//                TagEnd("a"),
-//                EndTagStart("b"),
-//                TagEnd("b"),
-//            ), actual
-//        )
-//    }
-//
-//    @Test
-//    fun html閉じタグ省略ネストと内容() {
-//        val lexer = Lexer()
-//
-//        val actual = lexer.lex("<b><a/>aaaa</b>")
-//
-//        println(actual)
-//
-//        assertContentEquals(
-//            listOf(
-//                StartTagStart("b", false),
-//                TagEnd("b"),
-//                StartTagStart("a", true),
-//                TagEnd("a"),
-//                HtmlValue("aaaa"),
-//                EndTagStart("b"),
-//                TagEnd("b"),
-//            ), actual
-//        )
-//    }
-//
-//    @Test
-//    fun インラインhtml() {
-//        val lexer = Lexer()
-//
-//        val actual = lexer.lex("aaaaa<b><a/>aaaa</b>")
-//
-//        println(actual)
-//
-//        assertContentEquals(
-//            listOf(
-//                Text("aaaaa"),
-//                StartTagStart("b", false),
-//                TagEnd("b"),
-//                StartTagStart("a", true),
-//                TagEnd("a"),
-//                HtmlValue("aaaa"),
-//                EndTagStart("b"),
-//                TagEnd("b"),
-//            ), actual
-//        )
-//    }
-//
+
+    @Test
+    fun html() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName attr=\"value\">")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("tagName", false, 0, 0),
+                AttributeName("attr", 0, 9),
+                AttributeValue("value", 0, 14),
+                TagEnd("tagName", 0, 21)
+            ), actual
+        )
+    }
+
+    @Test
+    fun html2() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName>")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("tagName", false, 0, 0), TagEnd("tagName", 0, 8)
+            ), actual
+        )
+    }
+
+    @Test
+    fun html閉じタグ() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName attr=\"value\"></tagName>")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("tagName", false, 0, 0),
+                AttributeName("attr", 0, 9),
+                AttributeValue("value", 0, 14),
+                TagEnd("tagName", 0, 21),
+                EndTagStart("tagName", 0, 22),
+                TagEnd("tagName", 0, 31)
+            ), actual
+        )
+    }
+
+    @Test
+    fun html内容() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName attr=\"value\">hello</tagName>")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("tagName", false, 0, 0),
+                AttributeName("attr", 0, 9),
+                AttributeValue("value", 0, 14),
+                TagEnd("tagName", 0, 21),
+                HtmlValue("hello", 0, 22),
+                EndTagStart("tagName", 0, 27),
+                TagEnd("tagName", 0, 36)
+            ), actual
+        )
+    }
+
+    @Test
+    fun htmlネスト() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName attr=\"value\"><tagB>hello</tagB></tagName>")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("tagName", false, 0, 0),
+                AttributeName("attr", 0, 9),
+                AttributeValue("value", 0, 14),
+                TagEnd("tagName", 0, 21),
+                StartTagStart("tagB", false, 0, 22),
+                TagEnd("tagB", 0, 27),
+                HtmlValue("hello", 0, 28),
+                EndTagStart("tagB", 0, 33),
+                TagEnd("tagB", 0, 39),
+                EndTagStart("tagName", 0, 40),
+                TagEnd("tagName", 0, 49)
+            ), actual
+        )
+    }
+
+    @Test
+    fun htmlかと思ったら違った() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName attr=\"value\"")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Text("<tagName", 0, 0), Whitespace(1, ' ', 0, 8), Text("attr=\"value\"", 0, 9)
+            ), actual
+        )
+    }
+
+    @Test
+    fun htmlのアトリビュートかと思ったら違った() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName attr=\"value>")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Text("<tagName", 0, 0), Whitespace(1, ' ', 0, 8), Text("attr=\"value>", 0, 9)
+            ), actual
+        )
+    }
+
+    @Test
+    fun html複数行() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName attr=\"value\">\nvalue\n</tagName>")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("tagName", false, 0, 0),
+                AttributeName("attr", 0, 9),
+                AttributeValue("value", 0, 14),
+                TagEnd("tagName", 0, 21),
+                HtmlValue("value", 1, 0),
+                EndTagStart("tagName", 2, 0),
+                TagEnd("tagName", 2, 9)
+            ), actual
+        )
+    }
+
+    @Test
+    fun html改行() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName attr=\"value\">\nvalue\nfaaaa</tagName>")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("tagName", false, 0, 0),
+                AttributeName("attr", 0, 9),
+                AttributeValue("value", 0, 14),
+                TagEnd("tagName", 0, 21),
+                HtmlValue("value\nfaaaa", 1, 0),
+                EndTagStart("tagName", 2, 5),
+                TagEnd("tagName", 2, 14)
+            ), actual
+        )
+    }
+
+    @Test
+    fun htmlアトリビュートいっぱい() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName attr=\"value\" attr2=\"aaaaaaa\">")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("tagName", false, 0, 0),
+                AttributeName("attr", 0, 9),
+                AttributeValue("value", 0, 14),
+                AttributeName("attr2", 0, 22),
+                AttributeValue("aaaaaaa", 0, 28),
+                TagEnd("tagName", 0, 37)
+            ), actual
+        )
+    }
+
+    @Test
+    fun `html騙し続ける`() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<<<<<<")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Text("<<<<<<", 0, 0)
+            ), actual
+        )
+    }
+
+    @Test
+    fun html閉じタグ省略() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<tagName/>")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("tagName", true, 0, 0),
+                TagEnd("tagName", 0, 8),
+
+                ), actual
+        )
+    }
+
+    @Test
+    fun html閉じタグ省略ネスト() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<b><a/></b>")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("b", false, 0, 0),
+                TagEnd("b", 0, 2),
+                StartTagStart("a", true, 0, 3),
+                TagEnd("a", 0, 5),
+                EndTagStart("b", 0, 7),
+                TagEnd("b", 0, 10),
+            ), actual
+        )
+    }
+
+    @Test
+    fun html閉じタグ省略ネストと内容() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("<b><a/>aaaa</b>")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                StartTagStart("b", false, 0, 0),
+                TagEnd("b", 0, 2),
+                StartTagStart("a", true, 0, 3),
+                TagEnd("a", 0, 5),
+                HtmlValue("aaaa", 0, 7),
+                EndTagStart("b", 0, 11),
+                TagEnd("b", 0, 14),
+            ), actual
+        )
+    }
+
+    @Test
+    fun インラインhtml() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("aaaaa<b><a/>aaaa</b>")
+
+        println(actual)
+
+        assertContentEquals(
+            listOf(
+                Text("aaaaa", 0, 0),
+                StartTagStart("b", false, 0, 5),
+                TagEnd("b", 0, 7),
+                StartTagStart("a", true, 0, 8),
+                TagEnd("a", 0, 10),
+                HtmlValue("aaaa", 0, 12),
+                EndTagStart("b", 0, 16),
+                TagEnd("b", 0, 19),
+            ), actual
+        )
+    }
+
+    //
     @Test
     fun test() {
         val lexer = Lexer()

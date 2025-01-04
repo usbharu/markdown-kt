@@ -15,6 +15,8 @@ class Lexer {
         var inline = false //行頭の判断
         var htmlNest = 0
         val codeBuffer = StringBuilder()
+        var codeStartLine: Int? = null
+        var codeStartCodePoint: Int? = null
 
         line@ while (lines.hasNext()) {
             inline = false //改行時にリセット
@@ -34,9 +36,26 @@ class Lexer {
 
                         inCode -> codeBuffer.append(next)
 
-                        next == "<" -> htmlNest = html(codePoints, htmlNest, codeBuffer, tokens, next[0], lineAt)
+                        next == "<" -> htmlNest = html(
+                            codePoints,
+                            htmlNest,
+                            codeBuffer,
+                            tokens,
+                            next[0],
+                            lineAt,
+                            codeStartLine,
+                            codeStartCodePoint
+                        )
 
-                        htmlNest != 0 -> codeBuffer.append(next)
+                        htmlNest != 0 -> {
+                            if (codeStartCodePoint == null) {
+                                codeStartCodePoint = codePointAt
+                            }
+                            if (codeStartLine == null) {
+                                codeStartLine = lineAt
+                            }
+                            codeBuffer.append(next)
+                        }
 
                         (next == "#" || next == "＃") && !inline -> header(codePoints, tokens, lineAt)
                         (next == ">" || next == "＞") && !inQuote && !inline -> {
@@ -108,7 +127,7 @@ class Lexer {
                 if (inCode) {
                     codeBuffer.append("\n")
                 } else if (htmlNest != 0) {
-                    codeBuffer.append(" ")
+                    codeBuffer.append("\n")
                 } else {
                     addBreak(tokens, lineAt, codePointAt = codePoints.current(), inQuote)
                 }
@@ -141,7 +160,10 @@ class Lexer {
         tokens: MutableList<Token>,
         next: Char,
         lineAt: Int,
+        codeStartLineAt: Int?,
+        codeStartPointAt: Int?
     ): Int {
+        val codePointAt = iterator.current() - 1
         var htmlNest1 = htmlNest
         var endTag = false
         var counter = 0
@@ -167,6 +189,7 @@ class Lexer {
             (iterator.peekOrNull(counter) != '/' && iterator.peekOrNull(counter) != '>')
         ) {
             val attrBuilder = StringBuilder()
+            val attributeCodePointAt = iterator.current() + counter
             attr@ while (iterator.peekOrNull(counter) != null && (iterator.peekOrNull(counter) != '=' && iterator.peekOrNull(
                     counter
                 )?.isWhitespace() != true)
@@ -174,8 +197,9 @@ class Lexer {
                 attrBuilder.append(iterator.peekOrNull(counter))
                 counter++
             }
-            attributeList.add(AttributeName(attrBuilder.toString(), lineAt, iterator.current() + counter))
+            attributeList.add(AttributeName(attrBuilder.toString(), lineAt, attributeCodePointAt))
             counter = skipPeekWhitespace(iterator, counter)
+            val attributeValueCodePointAt = iterator.current() + counter + 1
             if (iterator.peekOrNull(counter) == '=') {
                 counter++
                 if (iterator.peekOrNull(counter) == '"') {
@@ -184,7 +208,7 @@ class Lexer {
                     val peekString = offsetPeekString(iterator, counter, '"')
                     counter = peekString?.second?.minus(1) ?: counter
                     if (peekString != null) {
-                        attributeList.add(AttributeValue(peekString.first, lineAt, iterator.current() + counter))
+                        attributeList.add(AttributeValue(peekString.first, lineAt, attributeValueCodePointAt))
                     } else {
                         break@intag
                     }
@@ -205,21 +229,38 @@ class Lexer {
         }
         if (iterator.peekOrNull(counter) == '>') { //タグか判定
             if (codeBuffer.isNotBlank()) { //タグ間に文字があれば追加する
-                tokens.add(HtmlValue(codeBuffer.toString().trim(), lineAt, iterator.current() + counter))
+
+                val value = codeBuffer.toString().trim()
+                tokens.add(
+                    HtmlValue(
+                        value,
+                        codeStartLineAt ?: lineAt,
+                        codeStartPointAt ?: codePointAt
+                    )
+                ) //todo codepointで数える
                 codeBuffer.clear()
             }
             if (endTag) {//閉じタグ判定
                 htmlNest1-- //閉じタグならネストを一つ減らす
-                tokens.add(EndTagStart(tagNameBuilder.toString(), lineAt, iterator.current() + counter))
+                tokens.add(EndTagStart(tagNameBuilder.toString(), lineAt, codePointAt))
             } else {
                 htmlNest1++
-                tokens.add(StartTagStart(tagNameBuilder.toString(), void, lineAt, iterator.current() + counter))
+                tokens.add(StartTagStart(tagNameBuilder.toString(), void, lineAt, codePointAt))
             }
             tokens.addAll(attributeList)
-            tokens.add(TagEnd(tagNameBuilder.toString(), lineAt, iterator.current() + counter))
             iterator.skip(counter + 1)
+
+            tokens.add(
+                TagEnd(
+                    tagNameBuilder.toString(), lineAt, iterator.current() - if (void) {
+                        2
+                    } else {
+                        1
+                    }
+                )
+            )
         } else {
-            addText(tokens, next.toString(), lineAt, iterator.current())
+            addText(tokens, next.toString(), lineAt, codePointAt)
         }
         return htmlNest1
     }
@@ -377,6 +418,7 @@ class Lexer {
             skipWhitespace(iterator)
             val doubleQuotation = iterator.peekOrNull()
             if (iterator.peekOrNull() == '"' || doubleQuotation == '”') {
+                val codePointAt = iterator.current() + 1
                 iterator.next()
                 doubleQuotation!!
                 val titleBuilder = StringBuilder()
