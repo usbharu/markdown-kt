@@ -16,7 +16,7 @@ class PeekableCharIterator(private val charArray: CharArray) : Iterator<Char> {
 
     fun peekOrNull(offset: Int): Char? = charArray.getOrNull(index + offset)
 
-    fun skip(count: Int = 0) {
+    fun skip(count: Int = 1) {
         index += count
     }
 }

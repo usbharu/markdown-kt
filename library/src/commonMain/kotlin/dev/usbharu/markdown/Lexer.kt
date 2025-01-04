@@ -31,21 +31,53 @@ class Lexer {
                     val codePointAt = codePoints.current() - 1
                     when {
                         next == "`" || next == "｀" -> {
-                            inCode = codeblock(codePoints, next[0], tokens, inCode, codeBuffer, inline, lineAt)
+                            if (codeStartCodePoint == null) {
+                                codeStartCodePoint = codePointAt
+                            }
+                            if (codeStartLine == null) {
+                                codeStartLine = lineAt
+                            }
+                            inCode = codeblock(
+                                codePoints,
+                                next[0],
+                                tokens,
+                                inCode,
+                                codeBuffer,
+                                inline,
+                                lineAt,
+                                codeStartLine,
+                                codeStartCodePoint
+                            )
+                            if (inCode.not()) {
+                                codeStartLine = null
+                                codeStartCodePoint = null
+                            }
                         }
 
-                        inCode -> codeBuffer.append(next)
+                        inCode -> {
+                            if (codeStartCodePoint == null) {
+                                codeStartCodePoint = codePointAt
+                            }
+                            if (codeStartLine == null) {
+                                codeStartLine = lineAt
+                            }
+                            codeBuffer.append(next)
+                        }
 
-                        next == "<" -> htmlNest = html(
-                            codePoints,
-                            htmlNest,
-                            codeBuffer,
-                            tokens,
-                            next[0],
-                            lineAt,
-                            codeStartLine,
-                            codeStartCodePoint
-                        )
+                        next == "<" -> {
+                            htmlNest = html(
+                                codePoints,
+                                htmlNest,
+                                codeBuffer,
+                                tokens,
+                                next[0],
+                                lineAt,
+                                codeStartLine,
+                                codeStartCodePoint
+                            )
+                            codeStartLine = null
+                            codeStartCodePoint = null
+                        }
 
                         htmlNest != 0 -> {
                             if (codeStartCodePoint == null) {
@@ -271,18 +303,18 @@ class Lexer {
         tokens: MutableList<Token>,
         lineAt: Int
     ) {
+        val codePointAt = iterator.current() - 1
         if (iterator.peekOrNull() == next) {
             iterator.skip()
             val peekString = peekString(iterator, next, next)
             if (peekString == null) {
-                addText(tokens, "$next$next", lineAt, iterator.current())
-                iterator.skip(2)
+                addText(tokens, "$next$next", lineAt, codePointAt)
             } else {
-                tokens.add(Strike(peekString, lineAt, iterator.current()))
+                tokens.add(Strike(peekString, lineAt, codePointAt))
                 iterator.skip(peekString.length + 2)
             }
         } else {
-            addText(tokens, next.toString(), lineAt, iterator.current())
+            addText(tokens, next.toString(), lineAt, codePointAt)
         }
     }
 
@@ -302,8 +334,11 @@ class Lexer {
         inCode: Boolean,
         codeBuffer: StringBuilder,
         inline: Boolean,
-        lineAt: Int
+        lineAt: Int,
+        codeStartLineAt: Int?,
+        codeStartPointAt: Int?
     ): Boolean {
+        val codePointAt = iterator.current() - 1
         var inCode1 = inCode
         if (iterator.peekOrNull() == next && !inline) { //行頭かつ次の文字が`
             val codeBlockBuilder = StringBuilder()
@@ -312,15 +347,15 @@ class Lexer {
             if (iterator.peekOrNull() == next) {
                 codeBlockBuilder.append(iterator.next())
                 if (iterator.peekOrNull() == next) {
-                    tokens.add(Text(codeBlockBuilder.toString(), lineAt, iterator.current() - 2))
+                    tokens.add(Text(codeBlockBuilder.toString(), lineAt, codePointAt))
                 } else {
                     if (inCode1) {
                         inCode1 = false
                         tokens.add(
                             CodeBlock(
                                 codeBuffer.toString().trimStart('\n').trimEnd('\n'),
-                                lineAt,
-                                iterator.current() - 2
+                                codeStartLineAt ?: lineAt,
+                                codeStartPointAt ?: (iterator.current() - 2)
                             )
                         )
                         codeBuffer.clear()
@@ -351,19 +386,19 @@ class Lexer {
                 }
 
             } else if (iterator.peekOrNull() == null) {
-                tokens.add(Text(codeBlockBuilder.toString(), lineAt, iterator.current()))
+                tokens.add(Text(codeBlockBuilder.toString(), lineAt, codePointAt))
             }
 
         } else {
             val peekString = peekString(iterator, next)
             if (peekString != null && peekString.isEmpty()) {
-                addText(tokens, "$next$next", lineAt, iterator.current())
+                addText(tokens, "$next$next", lineAt, codePointAt)
                 iterator.next()
             } else if (peekString != null) {
-                tokens.add(InlineCodeBlock(peekString, lineAt, iterator.current()))
+                tokens.add(InlineCodeBlock(peekString, lineAt, codePointAt))
                 iterator.skip(peekString.length + 1)
             } else {
-                addText(tokens, next.toString(), lineAt, iterator.current())
+                addText(tokens, next.toString(), lineAt, codePointAt)
             }
         }
         return inCode1
@@ -418,7 +453,7 @@ class Lexer {
             skipWhitespace(iterator)
             val doubleQuotation = iterator.peekOrNull()
             if (iterator.peekOrNull() == '"' || doubleQuotation == '”') {
-                val codePointAt = iterator.current() + 1
+                val codePointAt = iterator.current()
                 iterator.next()
                 doubleQuotation!!
                 val titleBuilder = StringBuilder()
