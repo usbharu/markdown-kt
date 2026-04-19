@@ -525,6 +525,17 @@ class LexerTest {
     }
 
     @Test
+    fun httpUrl() {
+        val lexer = Lexer()
+
+        val actual = lexer.lex("http://example.com")
+
+        println(actual)
+
+        assertContentEquals(listOf(Url("http://example.com", 0, 0)), actual)
+    }
+
+    @Test
     fun url2() {
         val lexer = Lexer()
 
@@ -788,9 +799,10 @@ class LexerTest {
                 Text("alt", 0, 1),
                 SquareBracketEnd(0, 4),
                 ParenthesesStart(0, 5),
-                Url("https://example.com", 0, 6),
-                UrlTitle("example", 0, 0),
-                ParenthesesEnd(0, 0)
+                Text("../hoge.html", 0, 6),
+                Whitespace(1, ' ', 0, 18),
+                Text("\"example\"", 0, 19),
+                ParenthesesEnd(0, 28)
             ), actual
         )
     }

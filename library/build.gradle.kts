@@ -23,6 +23,8 @@ kotlin {
     iosX64()
     iosArm64()
     iosSimulatorArm64()
+    macosArm64()
+    macosX64()
     linuxX64()
     mingwX64()
     @OptIn(ExperimentalWasmDsl::class)
