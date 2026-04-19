@@ -223,8 +223,11 @@ class Parser {
     fun image(exclamation: Exclamation, iterator: PeekableTokenIterator): InlineNode {
         val squareBracketStartToken = iterator.peekOrNull()
         if (squareBracketStartToken !is SquareBracketStart) {
-            TODO()
+            return PlainText("!")
         }
+        // url() is written to be invoked after SquareBracketStart has already
+        // been consumed by the caller; image() has to mirror that contract.
+        iterator.next()
         val url = url(squareBracketStartToken, iterator)
         if (url !is UrlNode) {
             return InlineNodes(mutableListOf(PlainText("!"), url))
