@@ -56,9 +56,4 @@ class PeekableTokenIterator(private val tokens: List<Token>) : Iterator<Token> {
     fun skip(count: Int = 1) {
         index += count
     }
-
-    fun print() {
-        println("token: $tokens\nindex: $index")
-
-    }
 }

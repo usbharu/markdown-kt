@@ -52,7 +52,6 @@ class Parser {
             listItem@ while (isInline(iterator.peekOrNull()) && iterator.peekOrNull() !is Token.List && iterator.peekOrNull() !is LineBreak) {
                 val next = iterator.next()
                 val inline = inline(next, iterator)
-                println("internalList inline: " + inline)
                 item.addAll(inline)
             }
             while (iterator.peekOrNull() is LineBreak) {
@@ -65,7 +64,6 @@ class Parser {
                 } else {
                     1
                 }
-            println("count = $count,currentNest = $currentNest,peek = ${iterator.peekOrNull()}")
             if (currentNest < count && iterator.peekOrNull() is Token.List) {
                 item.add(internalList(iterator.next() as Token.List, iterator, count))
             }
@@ -93,7 +91,6 @@ class Parser {
                 listItems.add(ListItemNode(item))
             }
         }
-        println("end $currentNest")
         return when (list.type) {
             DISC -> DiscListNode(listItems)
             DECIMAL -> DecimalListNode(listItems)
@@ -115,7 +112,6 @@ class Parser {
         while (true) {
             val list = mutableListOf<QuotableNode>()
             while (isInline(iterator.peekOrNull()) && iterator.peekOrNull() !is InQuoteBreak) {
-                println("next token: " + iterator.peekOrNull())
                 list.addAll(inline(iterator.next(), iterator))
             }
             if (iterator.peekOrNull() is InQuoteBreak) {
@@ -181,8 +177,6 @@ class Parser {
     }
 
     fun inline(token: Token, iterator: PeekableTokenIterator): MutableList<InlineNode> {
-        println("inline start token:$token")
-        iterator.print()
         val node = when (token) {
             is Asterisk -> asterisk(token, iterator)
             is Exclamation -> image(token, iterator)
@@ -197,10 +191,7 @@ class Parser {
             is UrlTitle -> PlainText("\"${token.title}\"")
             is Whitespace -> whitespace(token, iterator)
             is LineBreak -> null
-            else -> {
-                println("error" + token)
-                TODO()
-            }
+            else -> TODO("unsupported inline token: $token")
         }
 
         if (node != null) {
@@ -344,8 +335,6 @@ class Parser {
     }
 
     fun italic(token: Asterisk, iterator: PeekableTokenIterator, count: Int): InlineNode? {
-        println("italic $count")
-        iterator.print()
         var counter = 0
         val tokens = mutableListOf<Token>()
         while (iterator.peekOrNull(counter) != null &&
@@ -353,14 +342,12 @@ class Parser {
             iterator.peekOrNull(counter) !is Asterisk
         ) {
             tokens.add(iterator.peekOrNull(counter)!!)
-            println(tokens)
             counter++
         }
         if (iterator.peekOrNull(counter) != null &&
             (iterator.peekOrNull(counter) is Asterisk &&
                     (iterator.peekOrNull(counter) as Asterisk).count == count)
         ) {
-            println("italic found!!! $count")
             iterator.skip(counter + 1)
             val inline = inline(tokens.first(), PeekableTokenIterator(tokens))
 
@@ -368,14 +355,10 @@ class Parser {
                 1 -> ItalicNode(inline)
                 2 -> BoldNode(inline)
                 3 -> ItalicNode(mutableListOf(BoldNode(inline)))
-                else -> {
-                    TODO()
-                }
+                else -> TODO("unsupported asterisk count: $count")
             }
 
         }
-        println("return null")
-        iterator.print()
         return null
     }
 
