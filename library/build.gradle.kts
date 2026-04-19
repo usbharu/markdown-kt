@@ -13,7 +13,7 @@ version = "1.1.0-SNAPSHOT"
 
 kotlin {
     jvm()
-    androidLibrary {
+    android {
         namespace = "dev.usbharu.markdown"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
@@ -26,7 +26,6 @@ kotlin {
     iosArm64()
     iosSimulatorArm64()
     macosArm64()
-    macosX64()
     linuxX64()
     mingwX64()
     @OptIn(ExperimentalWasmDsl::class)
