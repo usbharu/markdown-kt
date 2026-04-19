@@ -281,57 +281,16 @@ class Parser {
     }
 
     fun asterisk(token: Asterisk, iterator: PeekableTokenIterator): InlineNode {
-        var count = token.count
-        var node: InlineNode? = null
-
-        //todo **a*を正しくパースできないので閉じカウンタ的なものを追加し、token.countと閉じカウンタが一致しない場合plaintextに置き換える
-        while ((count > 0)) {
-            if (count == 3) {
-                val italicBold = italic(token, iterator, 3)
-                if (italicBold != null) {
-                    return italicBold
-                }
-                count--
-            }
-            if (count == 2) {
-                val italicBold = italic(token, iterator, 2)
-                if (italicBold != null) {
-                    if (node == null) {
-                        node = italicBold
-                        count = 1
-                        continue
-                    } else {
-                        when (node) {
-                            is BoldNode -> node.nodes.add(italicBold)
-                            is ItalicNode -> node.nodes.add(italicBold)
-                            else -> TODO()
-                        }
-                        return node
-                    }
-                }
-                count--
-            }
-            if (count == 1) {
-                val italicBold = italic(token, iterator, 1)
-                if (italicBold != null) {
-                    if (node == null) {
-                        node = italicBold
-                        count = 2
-                        continue
-                    } else {
-                        when (node) {
-                            is BoldNode -> node.nodes.add(italicBold)
-                            is ItalicNode -> node.nodes.add(italicBold)
-                            else -> TODO()
-                        }
-                        return node
-                    }
-                }
-                count--
-            }
+        // Try to close at the exact run-length first (*a*, **a**, ***a***).
+        // If the run-length does not close, fall back to a shorter run so that
+        // ** parsed as italic inside a literal * still works, without chasing
+        // an unrelated later asterisk pair across the paragraph.
+        val original = token.count
+        for (count in original downTo 1) {
+            val result = italic(token, iterator, count)
+            if (result != null) return result
         }
-
-        return node ?: PlainText(token.char.toString().repeat(token.count))
+        return PlainText(token.char.toString().repeat(original))
     }
 
     fun italic(token: Asterisk, iterator: PeekableTokenIterator, count: Int): InlineNode? {
@@ -339,6 +298,7 @@ class Parser {
         val tokens = mutableListOf<Token>()
         while (iterator.peekOrNull(counter) != null &&
             iterator.peekOrNull(counter) !is LineBreak &&
+            iterator.peekOrNull(counter) !is BlockBreak &&
             iterator.peekOrNull(counter) !is Asterisk
         ) {
             tokens.add(iterator.peekOrNull(counter)!!)
@@ -349,7 +309,13 @@ class Parser {
                     (iterator.peekOrNull(counter) as Asterisk).count == count)
         ) {
             iterator.skip(counter + 1)
-            val inline = inline(tokens.first(), PeekableTokenIterator(tokens))
+            // Process every collected token, not just the first — otherwise
+            // `*hello world*` loses everything after the first text run.
+            val innerIter = PeekableTokenIterator(tokens)
+            val inline = mutableListOf<InlineNode>()
+            while (innerIter.hasNext()) {
+                inline.addAll(inline(innerIter.next(), innerIter))
+            }
 
             return when (count) {
                 1 -> ItalicNode(inline)
