@@ -169,11 +169,9 @@ class ParserTest {
                     listOf(
                         ParagraphNode(
                             listOf(
-                                BoldNode(
-                                    mutableListOf(
-                                        PlainText("a"), ItalicNode(mutableListOf(PlainText("b")))
-                                    )
-                                )
+                                BoldNode(mutableListOf(PlainText("a"))),
+                                PlainText("b"),
+                                PlainText("*")
                             )
                         )
                     )
@@ -205,11 +203,9 @@ class ParserTest {
                     listOf(
                         ParagraphNode(
                             listOf(
-                                ItalicNode(
-                                    mutableListOf(
-                                        PlainText("a"), BoldNode(mutableListOf(PlainText("b")))
-                                    )
-                                )
+                                ItalicNode(mutableListOf(PlainText("a"))),
+                                PlainText("b"),
+                                PlainText("**")
                             )
                         )
                     )
