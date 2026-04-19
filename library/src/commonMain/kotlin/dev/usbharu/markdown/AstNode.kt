@@ -156,7 +156,11 @@ sealed class AstNode {
         }
     }
 
-    data class StrikeThroughNode(val nodes: List<InlineNode>) : InlineNode()
+    data class StrikeThroughNode(val nodes: List<InlineNode>) : InlineNode() {
+        override fun print(): String {
+            return nodes.joinToString("", prefix = "~~", postfix = "~~") { it.print() }
+        }
+    }
     data class PlainText(val text: String) : InlineNode() {
         override fun print(): String {
             return text

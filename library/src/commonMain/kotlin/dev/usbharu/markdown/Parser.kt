@@ -156,14 +156,14 @@ class Parser {
     fun paragraph(token: Token, iterator: PeekableTokenIterator): AstNode? {
         val list = mutableListOf<InlineNode>()
         var token2: Token? = token
-        do {
-            list.addAll(inline(token2!!, iterator))
-            if (iterator.hasNext() && isInline(iterator.peekOrNull())) {
-                token2 = iterator.next()
+        while (token2 != null && isInline(token2)) {
+            list.addAll(inline(token2, iterator))
+            token2 = if (iterator.hasNext() && isInline(iterator.peekOrNull())) {
+                iterator.next()
             } else {
-                token2 = iterator.peekOrNull()
+                null
             }
-        } while (iterator.hasNext() && isInline(token2))
+        }
         if (list.isEmpty()) {
             return null
         }
@@ -191,7 +191,7 @@ class Parser {
             is ParenthesesStart -> PlainText("(")
             is SquareBracketEnd -> PlainText("]")
             is SquareBracketStart -> url(token, iterator)
-            is Strike -> TODO()
+            is Strike -> strike(token, iterator)
             is Text -> plainText(token, iterator)
             is Url -> inlineUrl(token, iterator)
             is UrlTitle -> PlainText("\"${token.title}\"")
@@ -211,6 +211,10 @@ class Parser {
 
     fun inlineUrl(url: Url, iterator: PeekableTokenIterator): SimpleUrlNode {
         return SimpleUrlNode(url.url)
+    }
+
+    fun strike(token: Strike, iterator: PeekableTokenIterator): StrikeThroughNode {
+        return StrikeThroughNode(listOf(PlainText(token.strike)))
     }
 
     fun inlineCodeBlock(inlineCodeBlock: InlineCodeBlock, iterator: PeekableTokenIterator): InlineCodeNode {
@@ -336,7 +340,7 @@ class Parser {
             }
         }
 
-        return node!!
+        return node ?: PlainText(token.char.toString().repeat(token.count))
     }
 
     fun italic(token: Asterisk, iterator: PeekableTokenIterator, count: Int): InlineNode? {

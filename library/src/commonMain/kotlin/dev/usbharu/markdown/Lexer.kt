@@ -426,46 +426,49 @@ class Lexer {
         lineAt: Int
     ) {
         val codePointAt = iterator.current() - 1
-        //todo httpにも対応
-        val charIterator = PeekableCharIterator("ttps://".toCharArray())
-        val urlBuilder = StringBuilder()
-        urlBuilder.append(next)
-        while (charIterator.hasNext() && iterator.hasNext()) {
-            val nextC = charIterator.peekOrNull() ?: return
-            val nextC2 = iterator.peekOrNull() ?: return
-            if (nextC != nextC2) {
-                addText(tokens, urlBuilder.toString(), lineAt, codePointAt)
-                return
-            }
-            urlBuilder.append(nextC2)
-            charIterator.next()
+        val scheme = matchUrlScheme(iterator)
+        if (scheme == null) {
+            addText(tokens, next.toString(), lineAt, codePointAt)
+            return
+        }
+        iterator.skip(scheme.length - 1) // 'h' はすでに消費済みなので残りを読み飛ばす
+        val urlBuilder = StringBuilder(scheme)
+        while (iterator.hasNext() && (iterator.peekOrNull()
+                ?.isWhitespace() != true && iterator.peekOrNull() != ')')
+        ) {
+            urlBuilder.append(iterator.next())
+        }
+        tokens.add(Url(urlBuilder.toString(), lineAt, codePointAt))
+        skipWhitespace(iterator)
+        val doubleQuotation = iterator.peekOrNull()
+        if (iterator.peekOrNull() == '"' || doubleQuotation == '”') {
+            val codePointAt = iterator.current()
             iterator.next()
-        }
-        if (urlBuilder.length == 1) {
-            addText(tokens, urlBuilder.toString(), lineAt, codePointAt) //hだけのときはURLじゃないのでテキストとして追加
-        } else {
-            while (iterator.hasNext() && (iterator.peekOrNull()
-                    ?.isWhitespace() != true && iterator.peekOrNull() != ')')
-            ) {
-                urlBuilder.append(iterator.next())
+            doubleQuotation!!
+            val titleBuilder = StringBuilder()
+            while (iterator.hasNext() && iterator.peekOrNull() != doubleQuotation && iterator.peekOrNull() != ')') {
+                titleBuilder.append(iterator.next())
             }
-            tokens.add(Url(urlBuilder.toString(), lineAt, codePointAt))
-            skipWhitespace(iterator)
-            val doubleQuotation = iterator.peekOrNull()
-            if (iterator.peekOrNull() == '"' || doubleQuotation == '”') {
-                val codePointAt = iterator.current()
+            if (iterator.peekOrNull() == doubleQuotation) {
                 iterator.next()
-                doubleQuotation!!
-                val titleBuilder = StringBuilder()
-                while (iterator.hasNext() && iterator.peekOrNull() != doubleQuotation && iterator.peekOrNull() != ')') {
-                    titleBuilder.append(iterator.next())
-                }
-                if (iterator.peekOrNull() == doubleQuotation) {
-                    iterator.next()
-                }
-                tokens.add(UrlTitle(titleBuilder.toString(), lineAt, codePointAt))
             }
+            tokens.add(UrlTitle(titleBuilder.toString(), lineAt, codePointAt))
         }
+    }
+
+    private fun matchUrlScheme(iterator: PeekableCharIterator): String? {
+        // 'h' はすでに消費済みなので、残りのプレフィックスを peek で確認する
+        for (scheme in arrayOf("https://", "http://")) {
+            if (matchesRemaining(iterator, scheme)) return scheme
+        }
+        return null
+    }
+
+    private fun matchesRemaining(iterator: PeekableCharIterator, scheme: String): Boolean {
+        for (i in 1 until scheme.length) {
+            if (iterator.peekOrNull(i - 1) != scheme[i]) return false
+        }
+        return true
     }
 
     private fun decimalList(
